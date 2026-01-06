@@ -112,9 +112,10 @@ def detect_stars(image_gray, fwhm, threshold, sigma=3.0):
     :param fwhm: Full Width at Half Maximum = size of star in pixel
     :param threshold: the detection threshold
     :param sigma: std for delete outliers values
+    :return: an array of stars positions
     '''
     # calculate mean, median (= background level), std (=background noise)
-    mean, median, std = sigma_clipped_stats(image_gray, sigma)
+    mean, median, std = sigma_clipped_stats(image_gray, sigma=sigma)
 
     daofind = DAOStarFinder(
         fwhm = fwhm,
@@ -123,6 +124,54 @@ def detect_stars(image_gray, fwhm, threshold, sigma=3.0):
 
     sources = daofind(image_gray - median)
     return sources
+
+
+def star_mask(image_gray, sources):
+    '''
+    create a matrix for receive values of stars position from sources
+    
+    create a matrix with the same size of image and initially full infill with 0
+    infill position of star with 1
+    
+    :param image_gray: image
+    :param sources: the array of stars positions from DAOStarFinder
+    return: the mask
+    '''
+    mask = np.zeros(image_gray.shape, dtype=np.float32)
+
+    for star in sources:
+        x = int(star['xcentroid'])
+        y = int(star['ycentroid'])
+        mask[y, x] = 1.0
+    return mask
+
+
+def mask_effects(mask, kernelDilate=(3,3), kernelGaussian=(3,3)):
+    '''
+    Apply a dilation on stars of the mask and apply a gaussian blur
+    
+    save an image of results : the masks with stars dilated and the mask with yhe gaussian blur applied
+    
+    :param mask: the star mask
+    :param kernelDilate: couple of integers determine the size of kernel for the dilation of stars before gaussian blur
+    :param kernelGaussian: couple of integers determine the size of kernel for the gaussian blur
+    '''
+    # thickening of the star mask
+    kernel = np.ones(kernelDilate, np.float32)
+    mask_dilate = cv.dilate(mask, kernel)
+    save_image(DIR_RESULTS + 'mask_stars_dilate.png', mask_dilate, cmap='gray')
+
+    # Gaussian blur of the mask
+    maskFlouGaussien = cv.GaussianBlur(
+        mask_dilate,
+        ksize = kernelGaussian,
+        sigmaX = 0
+    )
+    maskFlouGaussien = np.clip(maskFlouGaussien, 0.0, 1.0)
+    save_image(DIR_RESULTS + 'maskFlouGaussien.png', maskFlouGaussien, cmap='gray')
+    
+    return maskFlouGaussien
+
 
 
 if __name__ == "__main__":
@@ -136,33 +185,15 @@ if __name__ == "__main__":
     
     sources = detect_stars(image_gray, fwhm=4.0, threshold=5.0)
     
+    mask = star_mask(image_gray, sources)
+    save_image(DIR_RESULTS + 'mask_stars_points.png', mask, cmap='gray')
 
-
-    #creation  masque flou gaussien
-
-    mask = np.zeros(image_gray.shape, dtype=np.float32)
-
-    for star in sources:
-        x = int(star['xcentroid'])
-        y = int(star['ycentroid'])
-        mask[y, x] = 1.0
-
-    # a ce stade points blancs = etoiles
-    plt.imsave('./results/mask_stars_points.png', mask, cmap='gray')
-
-    # epaississement du masque
-    kernel = np.ones((3, 3), np.float32)
-    mask_dilate = cv.dilate(mask, kernel)
-    plt.imsave('./results/mask_stars_dilate.png', mask_dilate, cmap='gray')
-
-    # Flou gaussien du masque
-    maskFlouGaussien = cv.GaussianBlur(
-        mask_dilate,
-        ksize = (3,3), # taille du filtre / le noyau / doit etre impair (pour avoir un centre)
-        sigmaX = 0 # petit = peu de flou = details conserves
-    )
-    maskFlouGaussien = np.clip(maskFlouGaussien, 0.0, 1.0)
-    plt.imsave('./results/maskFlouGaussien.png', maskFlouGaussien, cmap='gray')
+    maskFlouGaussien = mask_effects(mask, (3,3), (3,3))
+    
+    
+    
+    
+    
 
     kernel_erode = np.ones((2,2), np.float32)
     Ierode = cv.erode(image_gray, kernel_erode, iterations=3)
