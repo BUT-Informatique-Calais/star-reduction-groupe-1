@@ -71,17 +71,25 @@ def handler_color_image(data):
 
 
 def save_image(path, data, cmap=None):
+    '''
+    Save an image in a directory with an option color
+    
+    :param path: the path to save
+    :param data: the file to save
+    :param cmap: the otpion color. for example : cmap='grey'
+    '''
     plt.imsave(path, data, cmap=cmap)
 
 
 def convert_in_grey(image):
     '''
-    if the image is a color image, this function convert the image in grey
+    if the image is a color image, convert this in grey
     
-    in the case of a conversion is usefull, it make a mean of the 3 channels
+    compare the number of channels to determinate the color of image and 
+    realize a mean of the 3 channels for convert in grey
     
     :param image: image
-    :return the image in float32
+    return: the image converted in a float32 format
     '''
     if image.ndim == 3:
         # Mean of 3 channels
@@ -91,25 +99,29 @@ def convert_in_grey(image):
     return image_gray
 
 
-    
-    
-    
-    
+
 
 if __name__ == "__main__":
     fits_file = './examples/test_M31_linear.fits'
     data, header = load_fits(fits_file)
     
     image = handler_color_image(data)
+
     image_gray = convert_in_grey(image)
+    save_image(DIR_RESULTS + 'imageGrey.png', image_gray, cmap='gray')
     
-    save_image(DIR_RESULTS + 'imageGrey.png', image_gray, 'gray')
 
+    # detection des etoiles
+    mean, median, std = sigma_clipped_stats(image_gray, sigma=3.0) # retourne moy, mediane et ecarttype
+    #median = fond de ciel
+    #std = sigma = le bruit
 
-    
-    
-    
-    
+    daofind = DAOStarFinder(
+        fwhm=4.0, # Full Width at Half Maximum = Taille moyenne d’une étoile (en pixels)
+        threshold=5.0 * std # le seuil de detection
+    )
+
+    sources = daofind(image_gray - median)
 
     #creation  masque flou gaussien
 
