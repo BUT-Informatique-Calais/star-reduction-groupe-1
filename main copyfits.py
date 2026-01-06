@@ -4,7 +4,7 @@ import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
 from photutils.detection import DAOStarFinder
-from astropy.stats import mad_std
+from astropy.stats import mad_std, sigma_clipped_stats
 import os
 
 
@@ -63,7 +63,7 @@ gray_image8 = (
 # ============== Paramètres DAOStarFinder (Détection Etoile) ===================
 # mesure du bruit de fond -> distinguer vraie étoile qu'un pixel (bruitée)
 bkg_sigma = mad_std(gray_imagefloat)  # Calcul l'oscillation
-
+# mean, median, std = sigma_clipped_stats(gray_imagefloat, sigma=3.0)
 # mesure le fond de ciel
 median = np.median(gray_imagefloat)  # Médiane des valeurs de pixels
 
