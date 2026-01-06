@@ -87,6 +87,7 @@ def convert_in_grey(image):
     
     compare the number of channels to determinate the color of image and 
     realize a mean of the 3 channels for convert in grey
+    it's a necessary condition for use DAOStarFinder
     
     :param image: image
     return: the image converted in a float32 format
@@ -99,6 +100,29 @@ def convert_in_grey(image):
     return image_gray
 
 
+def detect_stars(image_gray, fwhm, threshold, sigma=3.0):
+    '''
+    use DAOStarFinder of library photutils for detect star in the image
+    
+    calculate with an astronomy's function mean, median and standard deviation
+    Then search star and repertory them in an array with mainly columns above:
+    xcentroid, ycentroid (source's position)
+    
+    :param image_gray: the image eventually converted in grey (required for DAOStarFinder)
+    :param fwhm: Full Width at Half Maximum = size of star in pixel
+    :param threshold: the detection threshold
+    :param sigma: std for delete outliers values
+    '''
+    # calculate mean, median (= background level), std (=background noise)
+    mean, median, std = sigma_clipped_stats(image_gray, sigma)
+
+    daofind = DAOStarFinder(
+        fwhm = fwhm,
+        threshold = threshold * std
+    )
+
+    sources = daofind(image_gray - median)
+    return sources
 
 
 if __name__ == "__main__":
@@ -110,18 +134,9 @@ if __name__ == "__main__":
     image_gray = convert_in_grey(image)
     save_image(DIR_RESULTS + 'imageGrey.png', image_gray, cmap='gray')
     
+    sources = detect_stars(image_gray, fwhm=4.0, threshold=5.0)
+    
 
-    # detection des etoiles
-    mean, median, std = sigma_clipped_stats(image_gray, sigma=3.0) # retourne moy, mediane et ecarttype
-    #median = fond de ciel
-    #std = sigma = le bruit
-
-    daofind = DAOStarFinder(
-        fwhm=4.0, # Full Width at Half Maximum = Taille moyenne d’une étoile (en pixels)
-        threshold=5.0 * std # le seuil de detection
-    )
-
-    sources = daofind(image_gray - median)
 
     #creation  masque flou gaussien
 
