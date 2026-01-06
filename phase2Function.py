@@ -7,7 +7,14 @@ from astropy.stats import sigma_clipped_stats
 
 
 def load_fits(path: str):
-    # Open and read the FITS file
+    '''
+    open and read the FITS file
+    take information and close file
+    
+    :param path: the image's path
+    :type path: str
+    :return: data: the image and header: file's informations
+    '''
     hdul = fits.open(path) # Header Data Unit
     # Display information about the file
     hdul.info()
@@ -23,7 +30,15 @@ def load_fits(path: str):
     return data, header
 
 
-
+def normalize_img(data):
+    '''
+    Normalize the entire image to [0, 1] for matplotlib
+    
+    :param data: the image previously loaded
+    '''
+    image = (data - data.min()) / (data.max() - data.min())
+    image = image.astype(np.float32)
+    return image
 
 
 if __name__ == "__main__":
@@ -45,8 +60,7 @@ if __name__ == "__main__":
         # If already (height, width, 3), no change needed
 
         # Normalize the entire image to [0, 1] for matplotlib
-        image = (data - data.min()) / (data.max() - data.min())
-        image = image.astype(np.float32)
+        image = normalize_img(data)
         
         # Save the data as a png image (no cmap for color images)
         plt.imsave('./results/original.png', image)
@@ -54,8 +68,7 @@ if __name__ == "__main__":
     else:
         
         # Normalize the entire image to [0, 1] for matplotlib
-        image = (data - data.min()) / (data.max() - data.min())
-        image = image.astype(np.float32)
+        image = normalize_img(data)
         
         # Monochrome image = garder en float 32
         plt.imsave('./results/original.png', data, cmap='gray')
