@@ -1,9 +1,10 @@
-from astropy.io import fits # permet de lire les fichiers FITS
-import matplotlib.pyplot as plt # sert à afficher et sauvegarder des images.
-import cv2 as cv # utilisé ici pour les opérations morphologiques (érosion).
-import numpy as np # manipulation efficace de tableaux numériques (images).
+from astropy.io import fits 
+import matplotlib.pyplot as plt
+import cv2 as cv 
+import numpy as np 
 from photutils.detection import DAOStarFinder
 from astropy.stats import sigma_clipped_stats
+
 
 DIR_RESULTS = './results/'
 
@@ -30,7 +31,6 @@ def load_fits(path: str):
     
     return data, header
 
-
 def normalize_img(data):
     '''
     Normalize the entire image to [0, 1] for matplotlib
@@ -40,7 +40,6 @@ def normalize_img(data):
     image = (data - data.min()) / (data.max() - data.min())
     image = image.astype(np.float32)
     return image
-
 
 def handler_color_image(data):
     '''
@@ -69,7 +68,6 @@ def handler_color_image(data):
         save_image(DIR_RESULTS + '/original.png', data, cmap='gray')
     return image
 
-
 def save_image(path, data, cmap=None):
     '''
     Save an image in a directory with an option color
@@ -79,7 +77,6 @@ def save_image(path, data, cmap=None):
     :param cmap: the otpion color. for example : cmap='grey'
     '''
     plt.imsave(path, data, cmap=cmap)
-
 
 def convert_in_grey(image):
     '''
@@ -98,7 +95,6 @@ def convert_in_grey(image):
     else:
         image_gray = image.astype(np.float32)
     return image_gray
-
 
 def detect_stars(image_gray, fwhm, threshold, sigma=3.0):
     '''
@@ -125,7 +121,6 @@ def detect_stars(image_gray, fwhm, threshold, sigma=3.0):
     sources = daofind(image_gray - median)
     return sources
 
-
 def star_mask(image_gray, sources):
     '''
     create a matrix for receive values of stars position from sources
@@ -144,7 +139,6 @@ def star_mask(image_gray, sources):
         y = int(star['ycentroid'])
         mask[y, x] = 1.0
     return mask
-
 
 def mask_effects(mask, kernelDilate=(3,3), kernelGaussian=(3,3)):
     '''
@@ -172,42 +166,56 @@ def mask_effects(mask, kernelDilate=(3,3), kernelGaussian=(3,3)):
     
     return maskFlouGaussien
 
+def erode_image(image_gray, kernelErode=(2,2), nbIteration=1):
+    '''
+    return an image eroded with a kernel with size (2,2) parameter and a number of iterations
+    
+    :param image_gray: image
+    :param kernelErode: couple of integer who determinate the size of stars to erode
+    :param nbIteration: integer number of eroded waves
+    '''
+    kernel_erode = np.ones(kernelErode, np.float32)
+    Ierode = cv.erode(image_gray, kernel_erode, iterations=nbIteration)
+    return Ierode
+
+def combinate_mask_image(mask, imgEroded, image_origin):
+    '''
+    Combinate the mask with the erodedImage and the origin image
+    
+    :param mask: the mask
+    :param imgEroded: the eroded image
+    :param image_origin: the origin image convert in grey
+    '''
+    image_finale = (mask * imgEroded) + ((1 - mask) * image_origin)
+    save_image(DIR_RESULTS + 'image_finale.png', image_finale, cmap='gray')
+    return image_finale
 
 
 if __name__ == "__main__":
+    
+    # Load file
     fits_file = './examples/test_M31_linear.fits'
     data, header = load_fits(fits_file)
     
+    # Process image
     image = handler_color_image(data)
-
     image_gray = convert_in_grey(image)
     save_image(DIR_RESULTS + 'imageGrey.png', image_gray, cmap='gray')
     
+    # data stars recovery and creation of mask
     sources = detect_stars(image_gray, fwhm=4.0, threshold=5.0)
-    
     mask = star_mask(image_gray, sources)
     save_image(DIR_RESULTS + 'mask_stars_points.png', mask, cmap='gray')
-
+    
+    # Apply Gaussian Blur
     maskFlouGaussien = mask_effects(mask, (3,3), (3,3))
     
+    # Erode Image
+    Ierode = erode_image(image_gray, (2,2), 3)
+    save_image(DIR_RESULTS + 'image_erode.png', Ierode, cmap='gray')
     
-    
-    
-    
-
-    kernel_erode = np.ones((2,2), np.float32)
-    Ierode = cv.erode(image_gray, kernel_erode, iterations=3)
-
-    plt.imsave('./results/image_erode.png', Ierode, cmap='gray')
-
-
-    # calcul de limage finale
-    # maskM = le masque
-    image_finale = (maskFlouGaussien * Ierode) + ((1 - maskFlouGaussien) * image_gray)
-    plt.imsave('./results/image_finale.png', image_finale, cmap='gray')
-
-    image_finale_int8 = (np.clip(image_finale, 0.0, 1.0) * 255).astype(np.uint8)
-    cv.imwrite('./results/image_finale_CV.png', image_finale_int8)
+    # creation final Image
+    image_finale = combinate_mask_image(maskFlouGaussien, Ierode, image_gray)
 
 
 
