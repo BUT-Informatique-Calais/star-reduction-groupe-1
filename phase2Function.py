@@ -5,6 +5,7 @@ import numpy as np # manipulation efficace de tableaux numériques (images).
 from photutils.detection import DAOStarFinder
 from astropy.stats import sigma_clipped_stats
 
+DIR_RESULTS = './results/'
 
 def load_fits(path: str):
     '''
@@ -41,60 +42,74 @@ def normalize_img(data):
     return image
 
 
+def handler_color_image(data):
+    '''
+    Handle both monochrome and color images
+    
+    if data have 3 channels, it's a color image and maybe need a transposition
+    else the image is monochrome and don't need that
+    In all case, the image is normalized and saved as original in defaults' directory
+    
+    :param data: Image
+    return: normalized image
+    '''
+    if data.ndim == 3:
+        # Color image - need to transpose to (height, width, channels)
+        if data.shape[0] == 3:  # If channels are first: (3, height, width)
+            data = np.transpose(data, (1, 2, 0))
+        # If already (height, width, 3), no change needed
+        
+        image = normalize_img(data)
+        # Save the data as a png image (no cmap for color images)
+        save_image(DIR_RESULTS + 'original.png', image)
+        
+    else:
+        # Monochrome image - no need to transpose anything
+        image = normalize_img(data)
+        save_image(DIR_RESULTS + '/original.png', data, cmap='gray')
+    return image
+
+
+def save_image(path, data, cmap=None):
+    plt.imsave(path, data, cmap=cmap)
+
+
+def convert_in_grey(image):
+    '''
+    if the image is a color image, this function convert the image in grey
+    
+    in the case of a conversion is usefull, it make a mean of the 3 channels
+    
+    :param image: image
+    :return the image in float32
+    '''
+    if image.ndim == 3:
+        # Mean of 3 channels
+        image_gray = np.mean(image, axis=2).astype(np.float32)
+    else:
+        image_gray = image.astype(np.float32)
+    return image_gray
+
+
+    
+    
+    
+    
+
 if __name__ == "__main__":
     fits_file = './examples/test_M31_linear.fits'
     data, header = load_fits(fits_file)
     
+    image = handler_color_image(data)
+    image_gray = convert_in_grey(image)
+    
+    save_image(DIR_RESULTS + 'imageGrey.png', image_gray, 'gray')
+
+
     
     
-
-    # Handle both monochrome and color images
-
-    if data.ndim == 3: 
-        # data.ndim = nombre de dimensions (3 dim = img couleur / 2 dim = img en niveau de gris)
-        
-        # Color image - need to transpose to (height, width, channels)
-        # Cas image couleur = réorganisation des canaux
-        if data.shape[0] == 3:  # If channels are first: (3, height, width)
-            data = np.transpose(data, (1, 2, 0))
-        # If already (height, width, 3), no change needed
-
-        # Normalize the entire image to [0, 1] for matplotlib
-        image = normalize_img(data)
-        
-        # Save the data as a png image (no cmap for color images)
-        plt.imsave('./results/original.png', image)
-        
-    else:
-        
-        # Normalize the entire image to [0, 1] for matplotlib
-        image = normalize_img(data)
-        
-        # Monochrome image = garder en float 32
-        plt.imsave('./results/original.png', data, cmap='gray')
-
-
-    #Phase 2:
-    # Conversion couleur → monochrome float32
-    if image.ndim == 3:
-        # Moyenne simple des 3 canaux
-        image_gray = np.mean(image, axis=2).astype(np.float32)
-    else:
-        image_gray = image.astype(np.float32)
-
-    plt.imsave('./results/imageGrey.png', image_gray, cmap='gray')
-
-    # detection des etoiles
-    mean, median, std = sigma_clipped_stats(image_gray, sigma=3.0) # retourne moy, mediane et ecarttype
-    #median = fond de ciel
-    #std = sigma = le bruit
-
-    daofind = DAOStarFinder(
-        fwhm=4.0, # Full Width at Half Maximum = Taille moyenne d’une étoile (en pixels)
-        threshold=5.0 * std # le seuil de detection
-    )
-
-    sources = daofind(image_gray - median)
+    
+    
 
     #creation  masque flou gaussien
 
