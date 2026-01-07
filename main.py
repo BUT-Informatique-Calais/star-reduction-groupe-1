@@ -143,37 +143,36 @@ fits.writeto(
 
 
 # ============== Affichage PLT gray image ===================
-plt_result_gray = fits.getdata("./results/fits/gray_float.fits")
+# plt_result_gray = fits.getdata("./results/fits/gray_float.fits")
 
-# stretch simple < 1% et > 99% ignore pour voir quelque chose
-vmin, vmax = np.percentile(plt_result_gray, (1, 99))
+# vmin, vmax = np.percentile(plt_result_gray, (1, 99))
 
-plt.figure(figsize=(8, 8))
-plt.imshow(plt_result_gray, cmap="gray", vmin=vmin, vmax=vmax)
-plt.axis("off")
-plt.savefig("./results/plt_gray_float.png", bbox_inches="tight", pad_inches=0)
+# plt.figure(figsize=(8, 8))
+# plt.imshow(plt_result_gray, cmap="gray", vmin=vmin, vmax=vmax)
+# plt.axis("off")
+# plt.savefig("./results/plt_gray_float.png", bbox_inches="tight", pad_inches=0)
+plt.imsave("./results/plt_result_final.png", Ifinal, cmap="gray")
 # ============== Affichage Resultat Erode ===================
-plt_result_eroded = fits.getdata("./results/fits/Ieroded.fits")
+# plt_result_eroded = fits.getdata("./results/fits/Ieroded.fits")
 
-# stretch simple < 1% et > 99% ignore pour voir quelque chose
-vmin, vmax = np.percentile(plt_result_eroded, (1, 99))
+# vmin, vmax = np.percentile(plt_result_eroded, (1, 99))
 
-plt.figure(figsize=(8, 8))
-plt.imshow(plt_result_eroded, cmap="gray", vmin=vmin, vmax=vmax)
-plt.axis("off")
-plt.savefig("./results/plt_result_eroded.png", bbox_inches="tight", pad_inches=0)
+# plt.figure(figsize=(8, 8))
+# plt.imshow(plt_result_eroded, cmap="gray", vmin=vmin, vmax=vmax)
+# plt.axis("off")
+# plt.savefig("./results/plt_result_eroded.png", bbox_inches="tight", pad_inches=0)
+plt.imsave("./results/plt_result_final.png", Ifinal, cmap="gray")
 
 
 # ============== Affichage résultat final ===================
 plt_result_final = fits.getdata("./results/fits/result_final.fits")
 
-# stretch simple < 1% et > 99% ignore pour voir quelque chose
-vmin, vmax = np.percentile(plt_result_final, (1, 99))
 
 plt.figure(figsize=(8, 8))
-plt.imshow(plt_result_final, cmap="gray", vmin=vmin, vmax=vmax)
+plt.imshow(plt_result_final, cmap="gray")
 plt.axis("off")
 plt.savefig("./results/plt_result_final.png", bbox_inches="tight", pad_inches=0)
+# plt.imsave("./results/plt_result_final.png", Ifinal, cmap="gray")
 
 # ============== Ecriture image en gris ===================
 # Save the eroded image
