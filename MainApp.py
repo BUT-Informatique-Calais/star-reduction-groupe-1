@@ -65,17 +65,110 @@ class StarReducApp(QMainWindow):
         # =================================================================
 
         # ============================= Left ===============================
-
+        left_list = QListWidget()
+        left_list.addItems(["Image 1", "Image 2", "Image 3", "Image 4", "Image 5"])
 
         # ============================ Center ==============================
+        center_box = QGroupBox("Actions")
+        center_layout = QVBoxLayout()
+        center_box.setLayout(center_layout)
 
+        center_layout.addWidget(QPushButton("TODO OR NOT TODO"))
+        
+        center_layout.addStretch(1)
+        
+        slider1_label = QLabel("Un paramtre")
+        slider1_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        slider1 = QSlider(Qt.Orientation.Horizontal)
+        slider1.setMinimum(1)
+        slider1.setMaximum(20)
+        slider1.setValue(5)
+        slider1.setTickPosition(QSlider.TickPosition.TicksBelow)
+        slider1.setTickInterval(1)
+        slider1.setSingleStep(1)
+        
+        value_label_slider1 = QLabel("0")
+        value_label_slider1.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        slider1.valueChanged.connect(
+            lambda v: value_label_slider1.setText(str(v))
+        )
+        
+        center_layout.addWidget(slider1_label)
+        center_layout.addWidget(slider1)
+        center_layout.addWidget(value_label_slider1)
+        
+        center_layout.addStretch(1)
+        
+        slider2_label = QLabel("Un autre paramtre")
+        slider2_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        slider2 = QSlider(Qt.Orientation.Horizontal)
+        slider2.setMinimum(1)
+        slider2.setMaximum(20)
+        slider2.setValue(5)
+        slider2.setTickPosition(QSlider.TickPosition.TicksBelow)
+        slider2.setTickInterval(1)
+        slider2.setSingleStep(1)
+        
+        value_label_slider2 = QLabel("0")
+        value_label_slider2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        slider2.valueChanged.connect(
+            lambda v: value_label_slider2.setText(str(v))
+        )
+        
+        center_layout.addWidget(slider2_label)
+        center_layout.addWidget(slider2)
+        center_layout.addWidget(value_label_slider2)
 
         # ============================= Right ==============================
+        right_box = QGroupBox("Paramètres")
+        
+        # main layout
+        right_main_layout = QVBoxLayout()
+        right_box.setLayout(right_main_layout)
+        
+        # parameters zone
+        right_form_layout = QFormLayout()
+        right_main_layout.addLayout(right_form_layout)
 
+        param1 = QLineEdit("TODO")
+        param1.setReadOnly(True)
+        right_form_layout.addRow("Param 1 :", param1)
 
-        # Assemblage
+        param2 = QLineEdit("TODO")
+        param2.setReadOnly(True)
+        right_form_layout.addRow("Param 2 :", param2)
+        
+        param3 = QLineEdit("TODO")
+        param3.setReadOnly(True)
+        right_form_layout.addRow("Param 3 :", param3)
+        
+        param4 = QLineEdit("TODO")
+        param4.setReadOnly(True)
+        right_form_layout.addRow("Param 4 :", param4)
+        
+        param5 = QLineEdit("TODO")
+        param5.setReadOnly(True)
+        right_form_layout.addRow("Param 5 :", param5)
+        
+        # spacer for keep button register on bottom
+        right_main_layout.addStretch(1)
+        
+        # Button registration
+        btn_save = QPushButton("Enregistrer Image")
+        right_main_layout.addWidget(btn_save)
+        
+        # ==================== Add elements in Bottom =======================
+        bottom_layout = QHBoxLayout()
+        bottom_layout.addWidget(left_list)
+        bottom_layout.addWidget(center_box)
+        bottom_layout.addWidget(right_box)
+
+        
+        # =================================================================
+        # ======================== ASSOCIATION ============================
+        # =================================================================
         main_layout.addLayout(top_layout)
-
+        main_layout.addLayout(bottom_layout)
 
     
 
@@ -84,7 +177,7 @@ if __name__ == "__main__":
     
     
     app = QApplication(sys.argv)
-    app.setStyleSheet(qdarkstyle.load_stylesheet()) # Apply dark style
+    # app.setStyleSheet(qdarkstyle.load_stylesheet()) # Apply dark style
     
     window = StarReducApp()
     window.show()
