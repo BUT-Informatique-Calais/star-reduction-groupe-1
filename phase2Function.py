@@ -4,6 +4,7 @@ import cv2 as cv
 import numpy as np 
 from photutils.detection import DAOStarFinder
 from astropy.stats import sigma_clipped_stats
+import os
 
 
 DIR_RESULTS_ORIGINAL = './results/original/'
@@ -78,6 +79,7 @@ def save_image(path, data, cmap=None):
     :param data: the file to save
     :param cmap: the otpion color. for example : cmap='grey'
     '''
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     plt.imsave(path, data, cmap=cmap)
 
 def convert_in_grey(image):
