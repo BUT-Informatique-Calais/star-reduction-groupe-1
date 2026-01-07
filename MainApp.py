@@ -3,14 +3,18 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QGr
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 import qdarkstyle # Dark mode
+import os
+import phase2forApp as p2
+
+FOLDER_EXAMPLES = "./examples"
 
 class StarReducApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Application de réduction d'étoiles")
-        self.resize(1200, 800)   # largeur, hauteur
+        self.setWindowTitle("Star reduction App")
+        self.resize(1200, 800)   # width, height
         
-        # Layout principal pour la fenetre
+        # main layout for window
         main_widget = QWidget(self)
         self.setCentralWidget(main_widget)
         main_layout = QVBoxLayout()
@@ -21,38 +25,40 @@ class StarReducApp(QMainWindow):
         # =================================================================
         
         # ========================= Left Image ============================
-        box_left = QGroupBox("Image originale")
+        box_left = QGroupBox("Original Image")
+        box_left.setFixedSize(550, 550)
         layout_left = QVBoxLayout()
         box_left.setLayout(layout_left)
 
-        img_left = QLabel()
-        img_left.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        img_left.setPixmap(
-            QPixmap("results/original/original.png").scaled(
-                500, 800,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            )
-        )
+        self.img_left = QLabel()
+        self.img_left.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.img_left.setPixmap(
+        #     QPixmap("results/original/original.png").scaled(
+        #         500, 800,
+        #         Qt.AspectRatioMode.KeepAspectRatio,
+        #         Qt.TransformationMode.SmoothTransformation
+        #     )
+        # )
         
-        layout_left.addWidget(img_left)
+        layout_left.addWidget(self.img_left)
 
         # ========================= Right Image ===========================
-        box_right = QGroupBox("Image traitée")
+        box_right = QGroupBox("Processed Image")
+        box_right.setFixedSize(550, 550)
         layout_right = QVBoxLayout()
         box_right.setLayout(layout_right)
 
-        img_right = QLabel()
-        img_right.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        img_right.setPixmap(
-            QPixmap("results/final_image/image_finale.png").scaled(
-                500, 800,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            )
-        )
+        self.img_right = QLabel()
+        self.img_right.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.img_right.setPixmap(
+        #     QPixmap("results/final_image/image_finale.png").scaled(
+        #         500, 800,
+        #         Qt.AspectRatioMode.KeepAspectRatio,
+        #         Qt.TransformationMode.SmoothTransformation
+        #     )
+        # )
 
-        layout_right.addWidget(img_right)
+        layout_right.addWidget(self.img_right)
 
         # ==================== Add Image Box in Top =======================
         top_layout = QHBoxLayout()
@@ -65,28 +71,36 @@ class StarReducApp(QMainWindow):
         # =================================================================
 
         # ============================= Left ===============================
-        left_list = QListWidget()
-        left_list.addItems(["Image 1", "Image 2", "Image 3", "Image 4", "Image 5"])
+        self.left_list = QListWidget()
+        
+        # infill list with files from folder example
+        for nameFiles in os.listdir(FOLDER_EXAMPLES):
+            self.left_list.addItem(nameFiles)
+        
+        # Handler clic on item
+        self.left_list.itemClicked.connect(self.on_item_clicked)
 
         # ============================ Center ==============================
         center_box = QGroupBox("Actions")
         center_layout = QVBoxLayout()
         center_box.setLayout(center_layout)
 
+        # Button
         center_layout.addWidget(QPushButton("TODO OR NOT TODO"))
         
         center_layout.addStretch(1)
         
+        # First Slider
         slider1_label = QLabel("Un paramtre")
         slider1_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         slider1 = QSlider(Qt.Orientation.Horizontal)
         slider1.setMinimum(1)
         slider1.setMaximum(20)
-        slider1.setValue(5)
+        slider1.setValue(0)
         slider1.setTickPosition(QSlider.TickPosition.TicksBelow)
         slider1.setTickInterval(1)
         slider1.setSingleStep(1)
-        
+        # value bottom 
         value_label_slider1 = QLabel("0")
         value_label_slider1.setAlignment(Qt.AlignmentFlag.AlignCenter)
         slider1.valueChanged.connect(
@@ -99,6 +113,7 @@ class StarReducApp(QMainWindow):
         
         center_layout.addStretch(1)
         
+        # Second Slider
         slider2_label = QLabel("Un autre paramtre")
         slider2_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         slider2 = QSlider(Qt.Orientation.Horizontal)
@@ -159,7 +174,7 @@ class StarReducApp(QMainWindow):
         
         # ==================== Add elements in Bottom =======================
         bottom_layout = QHBoxLayout()
-        bottom_layout.addWidget(left_list)
+        bottom_layout.addWidget(self.left_list)
         bottom_layout.addWidget(center_box)
         bottom_layout.addWidget(right_box)
 
@@ -171,13 +186,31 @@ class StarReducApp(QMainWindow):
         main_layout.addLayout(bottom_layout)
 
     
+    def on_item_clicked(self, item):
+        filename = item.text()
+        fits_path = os.path.join(FOLDER_EXAMPLES, filename)
+
+        # Load fits
+        data, header = p2.load_fits(fits_path)
+
+        # Create original.png
+        p2.handler_color_image(data)
+
+        # Update original Image
+        self.img_left.setPixmap(
+            QPixmap("results/original/original.png").scaled(
+                500, 500,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        )
 
 
 if __name__ == "__main__":
     
     
     app = QApplication(sys.argv)
-    # app.setStyleSheet(qdarkstyle.load_stylesheet()) # Apply dark style
+    app.setStyleSheet(qdarkstyle.load_stylesheet()) # Apply dark style
     
     window = StarReducApp()
     window.show()
