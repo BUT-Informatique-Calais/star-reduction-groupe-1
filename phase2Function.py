@@ -22,6 +22,7 @@ def load_fits(path: str):
     '''
     hdul = fits.open(path) # Header Data Unit
     # Display information about the file
+    print()
     hdul.info()
     
     # Access the data from the primary HDU
@@ -123,6 +124,15 @@ def detect_stars(image_gray, fwhm, threshold, sigma=3.0):
     )
 
     sources = daofind(image_gray - median)
+    
+    print(
+    "\n========================== Affichage des paramètres DAOStarFinder : =========================="
+    )
+    print("sigma = ", sigma)
+    print("fhwm = ", fwhm)
+    print("threshold = ", threshold)
+    print("nb stars = ", 0 if sources is None else len(sources))
+    
     return sources
 
 def star_mask(image_gray, sources):
@@ -131,17 +141,34 @@ def star_mask(image_gray, sources):
     
     create a matrix with the same size of image and initially full infill with 0
     infill position of star with 1
+    create an overlay to visualize stars will have a traitment
     
     :param image_gray: image
     :param sources: the array of stars positions from DAOStarFinder
     return: the mask
     '''
+    print(
+    "\n======================= Affichage des colonnes de sources ====================================="
+    )
+    print(sources.colnames if sources is not None else print("No sources found")) 
+    
     mask = np.zeros(image_gray.shape, dtype=np.float32)
-
+    
     for star in sources:
         x = int(star['xcentroid'])
         y = int(star['ycentroid'])
         mask[y, x] = 1.0
+    
+    # overlay for visualize stars wich will have a traitment
+    kernel_for_overlay = np.ones((3,3), np.float32)
+    mask_dilate_for_overlay = cv.dilate(mask, kernel_for_overlay)
+    # normalize with uint8 for use cvtColor
+    image_gray_uint8 = ((image_gray - image_gray.min()) / (image_gray.max() - image_gray.min()) * 255.0 ).astype(np.uint8)
+    overlay = cv.cvtColor(image_gray_uint8, cv.COLOR_GRAY2BGR)
+    overlay[mask_dilate_for_overlay > 0] = [0, 0, 255]  # red color
+    os.makedirs(os.path.dirname(DIR_RESULTS_MASK + "overlay_stars.png"), exist_ok=True)
+    cv.imwrite(DIR_RESULTS_MASK + "overlay_stars.png", overlay)
+    
     return mask
 
 def mask_effects(mask, kernelDilate=(3,3), kernelGaussian=(3,3)):
@@ -194,6 +221,19 @@ def combinate_mask_image(mask, imgEroded, image_origin):
     save_image(DIR_RESULTS_FINAL + 'image_finale.png', final_image, cmap='gray')
     return final_image
 
+def display_datatype_check(image_gray, Ierode, final_image):
+    '''
+    Function to check datatype of the differents images to ensure they keep float32 format during the processus
+    
+    :param image_gray: the grey image
+    :param Ierode: the eroded image
+    :param final_image: the final image
+    '''
+    print("\n======================= check du datatype =============================")
+    print("datatype grayimage:", image_gray.dtype)
+    print("datatype Ierode:", Ierode.dtype)
+    print("datatype Ifinal:", final_image.dtype)
+
 
 if __name__ == "__main__":
     
@@ -221,7 +261,7 @@ if __name__ == "__main__":
     # creation final Image
     final_image = combinate_mask_image(maskFlouGaussien, Ierode, image_gray)
 
-
-
+    display_datatype_check(image_gray, Ierode, final_image)
+    
 
     
