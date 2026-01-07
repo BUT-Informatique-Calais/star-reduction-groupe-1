@@ -121,40 +121,28 @@ def mask_from_stars_starnet(stars_img, thresh=0.02):
     return mask
 
 
-def mask_effects(mask, kernelDilate=(3, 3), kernelGaussian=(3, 3)):
+def mask_effects(mask, kernelDilate=(3, 3), kernelGaussian=(3, 3), iterations=1):
     """
-    Apply a dilation on stars of the mask and apply a gaussian blur
+    pply a dilation on stars of the mask and apply a gaussian blur
 
     save an image of results : the masks with stars dilated and the mask with gaussian blur applied
 
     :param mask: the star mask
     :param kernelDilate: couple of integers who determinate the size of kernel for the dilation of stars before gaussian blur
     :param kernelGaussian: couple of integers who determinate the size of kernel for the gaussian blur
+    :param iterations: number of iterations for dilation
     """
     # thickening of the star mask
     kernel = np.ones(kernelDilate, np.float32)
-    mask_shrink = cv.erode(mask, kernel, iterations=1)
-    save_image(DIR_RESULTS_MASK + "mask_stars_shrink.png", mask_shrink, cmap="gray")
+    mask_dilate = cv.dilate(mask, kernel, iterations=iterations)
+    save_image(DIR_RESULTS_MASK + "mask_stars_dilate.png", mask_dilate, cmap="gray")
 
     # Gaussian blur of the mask
-    maskFlouGaussien = cv.GaussianBlur(mask_shrink, ksize=kernelGaussian, sigmaX=0)
+    maskFlouGaussien = cv.GaussianBlur(mask_dilate, ksize=kernelGaussian, sigmaX=0)
     maskFlouGaussien = np.clip(maskFlouGaussien, 0.0, 1.0)
     save_image(DIR_RESULTS_MASK + "maskFlouGaussien.png", maskFlouGaussien, cmap="gray")
 
     return maskFlouGaussien
-
-
-def erode_image(image_gray, kernelErode=(2, 2), nbIteration=1):
-    """
-    return an image eroded with a kernel with size (2,2) parameter and a number of iterations
-
-    :param image_gray: image
-    :param kernelErode: couple of integer who determinate the size of stars to erode
-    :param nbIteration: integer number of eroded waves
-    """
-    kernel_erode = np.ones(kernelErode, np.float32)
-    Ierode = cv.erode(image_gray, kernel_erode, iterations=nbIteration)
-    return Ierode
 
 
 def combinate_mask_image(image_starless, image_starreduced):
@@ -165,46 +153,59 @@ def combinate_mask_image(image_starless, image_starreduced):
     :param imgEroded: the eroded image
     :param image_origin: the origin image convert in grey
     """
-    final_image = starless_file_gray + star_reduced
+    final_image = image_starless + image_starreduced
     # save_image(DIR_RESULTS_FINAL + "image_finale.png", final_image, cmap="gray")
     return final_image
 
 
 if __name__ == "__main__":
-
+    """
+    The objective is to recuperate two pictures from StarNet :
+     - a starless picture
+     - a staronly picture
+    Then, we create a mask from the staronly picture with a threshold
+    We apply effects on the mask (dilation and gaussian blur)
+    We reduce the staronly picture with the mask
+    Wee combine the starless picture and the reduced staronly picture to obtain a final
+    """
     # Load starless file and starfile
     starless_file = "/home/valentin/astro/star_reduction/starless_test_M31_linear.fit"
-    star_file = "/home/valentin/astro/star_reduction/starmask_test_M31_linear.fit"
+    staronly_file = "/home/valentin/astro/star_reduction/starmask_test_M31_linear.fit"
 
-    # Load starless
+    # Load starless and apply handler_color_image for normalization
     data_starless, header_starless = load_fits(starless_file)
     starless = handler_color_image(data_starless)
-    # Load starfile
-    data_starfile, header_starfile = load_fits(star_file)
-    starfile = handler_color_image(data_starfile)
 
+    # Load staronly and apply handler_color_image for normalization
+    data_staronly, header_staronly = load_fits(staronly_file)
+    staronly = handler_color_image(data_staronly)
+
+    # Save original images loaded
     save_image(DIR_RESULTS_ORIGINAL + "starless.png", starless)
-    save_image(DIR_RESULTS_ORIGINAL + "starfile.png", starfile)
+    save_image(DIR_RESULTS_ORIGINAL + "staronly.png", staronly)
 
-    # convert starfile in grey
-    starfile_gray = convert_in_grey(starfile)
+    # Convert in grey
+    staronly_gray = convert_in_grey(staronly)
     starless_file_gray = convert_in_grey(starless)
 
-    # MAsk creation process
-    mask = mask_from_stars_starnet(starfile_gray, thresh=0.02)
+    # Create mask from staronly image
+    mask = mask_from_stars_starnet(staronly_gray, thresh=0.03)
     save_image(DIR_RESULTS_MASK + "mask_stars_thresh.png", mask, cmap="gray")
 
     # Apply Gaussian Blur
-    maskFlouGaussien = mask_effects(mask, (3, 3), (3, 3))
-    save_image(DIR_RESULTS_MASK + "star_reduced.png", maskFlouGaussien, cmap="gray")
+    maskFlouGaussien = mask_effects(mask, (3, 3), (3, 3), iterations=1)
+    save_image(DIR_RESULTS_MASK + "star_blurred.png", maskFlouGaussien, cmap="gray")
 
-    star_reduced = starfile_gray * maskFlouGaussien
-    save_image(DIR_RESULTS_MASK + "star_only_reduced.png", star_reduced, cmap="gray")
+    # Reduce staronly image with the mask
+    star_reduced = staronly_gray * maskFlouGaussien
+    save_image(DIR_RESULTS_MASK + "star_reduced.png", star_reduced, cmap="gray")
 
+    # Combine starless image and reduced staronly image
     final = combinate_mask_image(starless_file_gray, star_reduced)
     save_image(DIR_RESULTS_FINAL + "final_combined.png", final, cmap="gray")
-    # creation final Image
-    print("============= check du datatype ===================")
+
+    # Debug datatype
+    print("============= check of datatype ===================")
     print("starless_file_gray.dtype:", starless_file_gray.dtype)
     print("star_reduced.dtype:", star_reduced.dtype)
     print("final.dtype:", final.dtype)
