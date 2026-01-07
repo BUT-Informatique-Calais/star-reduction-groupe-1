@@ -154,10 +154,15 @@ def star_mask(image_gray, sources):
     
     mask = np.zeros(image_gray.shape, dtype=np.float32)
     
+    h, w = image_gray.shape[:2]
+    
     for star in sources:
         x = int(star['xcentroid'])
         y = int(star['ycentroid'])
-        mask[y, x] = 1.0
+        
+        # ignore if a point is out of borders
+        if 0 <= x < w and 0 <= y < h:
+            mask[y, x] = 1.0
     
     # overlay for visualize stars wich will have a traitment
     kernel_for_overlay = np.ones((3,3), np.float32)

@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QGroupBox, QLabel, QHBoxLayout, QListWidget, QPushButton, QSlider, QLineEdit, QFormLayout
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 import qdarkstyle # Dark mode
 import os
 import phase2forApp as p2
@@ -13,6 +13,15 @@ class StarReducApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("Star reduction App")
         self.resize(1200, 800)   # width, height
+        
+        # variables for process
+        self.current_fits = None
+        self.nb_stars = 0
+        
+        # timer anti-spam (debounce) in order to avoid too many calculations
+        self.update_timer = QTimer(self)
+        self.update_timer.setSingleShot(True)
+        self.update_timer.timeout.connect(self.update_process_image)
         
         # main layout for window
         main_widget = QWidget(self)
@@ -90,52 +99,104 @@ class StarReducApp(QMainWindow):
         
         center_layout.addStretch(1)
         
-        # First Slider
-        slider1_label = QLabel("Un paramtre")
-        slider1_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        slider1 = QSlider(Qt.Orientation.Horizontal)
-        slider1.setMinimum(1)
-        slider1.setMaximum(20)
-        slider1.setValue(0)
-        slider1.setTickPosition(QSlider.TickPosition.TicksBelow)
-        slider1.setTickInterval(1)
-        slider1.setSingleStep(1)
+        # First Slider fwhm
+        slider_fwhm_label = QLabel("Fwhm")
+        slider_fwhm_label.setToolTip("Full Width at Half Maximum => size of star in pixel")
+        slider_fwhm_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.slider_fwhm = QSlider(Qt.Orientation.Horizontal)
+        self.slider_fwhm.setMinimum(1)
+        self.slider_fwhm.setMaximum(100)
+        self.slider_fwhm.setValue(40)
+        self.slider_fwhm.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.slider_fwhm.setTickInterval(1)
+        self.slider_fwhm.setSingleStep(1)
         # value bottom 
-        value_label_slider1 = QLabel("0")
-        value_label_slider1.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        slider1.valueChanged.connect(
-            lambda v: value_label_slider1.setText(str(v))
+        value_label_slider_fwhm = QLabel("4")
+        value_label_slider_fwhm.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.slider_fwhm.valueChanged.connect(
+            lambda v: (value_label_slider_fwhm.setText(str(v)),
+                       self.schedule_update()
+            )
         )
         
-        center_layout.addWidget(slider1_label)
-        center_layout.addWidget(slider1)
-        center_layout.addWidget(value_label_slider1)
+        center_layout.addWidget(slider_fwhm_label)
+        center_layout.addWidget(self.slider_fwhm)
+        center_layout.addWidget(value_label_slider_fwhm)
         
         center_layout.addStretch(1)
         
-        # Second Slider
-        slider2_label = QLabel("Un autre paramtre")
-        slider2_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        slider2 = QSlider(Qt.Orientation.Horizontal)
-        slider2.setMinimum(1)
-        slider2.setMaximum(20)
-        slider2.setValue(5)
-        slider2.setTickPosition(QSlider.TickPosition.TicksBelow)
-        slider2.setTickInterval(1)
-        slider2.setSingleStep(1)
+        # Second Slider threshold
+        slider_threshold_label = QLabel("Threshold")
+        slider_threshold_label.setToolTip("The detection threshold")
+        slider_threshold_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.slider_threshold = QSlider(Qt.Orientation.Horizontal)
+        self.slider_threshold.setMinimum(1)
+        self.slider_threshold.setMaximum(20)
+        self.slider_threshold.setValue(5)
+        self.slider_threshold.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.slider_threshold.setTickInterval(1)
+        self.slider_threshold.setSingleStep(1)
         
-        value_label_slider2 = QLabel("0")
-        value_label_slider2.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        slider2.valueChanged.connect(
-            lambda v: value_label_slider2.setText(str(v))
+        value_label_slider_threshold = QLabel("5")
+        value_label_slider_threshold.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.slider_threshold.valueChanged.connect(
+            lambda v: (value_label_slider_threshold.setText(str(v)),
+                       self.schedule_update()
+            )
         )
         
-        center_layout.addWidget(slider2_label)
-        center_layout.addWidget(slider2)
-        center_layout.addWidget(value_label_slider2)
+        center_layout.addWidget(slider_threshold_label)
+        center_layout.addWidget(self.slider_threshold)
+        center_layout.addWidget(value_label_slider_threshold)
 
+        # Third Slider erode_kernel
+        slider_erode_kernel_label = QLabel("Erode kernel")
+        slider_erode_kernel_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.slider_erode_kernel = QSlider(Qt.Orientation.Horizontal)
+        self.slider_erode_kernel.setMinimum(1)
+        self.slider_erode_kernel.setMaximum(100)
+        self.slider_erode_kernel.setValue(2)
+        self.slider_erode_kernel.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.slider_erode_kernel.setTickInterval(1)
+        self.slider_erode_kernel.setSingleStep(1)
+        
+        value_label_slider_erode_kernel = QLabel("2")
+        value_label_slider_erode_kernel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.slider_erode_kernel.valueChanged.connect(
+            lambda v: (value_label_slider_erode_kernel.setText(str(v)),
+                       self.schedule_update()
+                       )
+        )
+        
+        center_layout.addWidget(slider_erode_kernel_label)
+        center_layout.addWidget(self.slider_erode_kernel)
+        center_layout.addWidget(value_label_slider_erode_kernel)
+        
+        # Fourth Slider nb Iteration erode
+        slider_nb_iteration_label = QLabel("Number of erosion iterations")
+        slider_nb_iteration_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.slider_nb_iteration = QSlider(Qt.Orientation.Horizontal)
+        self.slider_nb_iteration.setMinimum(1)
+        self.slider_nb_iteration.setMaximum(20)
+        self.slider_nb_iteration.setValue(2)
+        self.slider_nb_iteration.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.slider_nb_iteration.setTickInterval(1)
+        self.slider_nb_iteration.setSingleStep(1)
+        
+        value_label_slider_nb_iteration = QLabel("2")
+        value_label_slider_nb_iteration.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.slider_nb_iteration.valueChanged.connect(
+            lambda v: (value_label_slider_nb_iteration.setText(str(v)),
+                       self.schedule_update()
+            )
+        )
+        
+        center_layout.addWidget(slider_nb_iteration_label)
+        center_layout.addWidget(self.slider_nb_iteration)
+        center_layout.addWidget(value_label_slider_nb_iteration)
+        
         # ============================= Right ==============================
-        right_box = QGroupBox("Paramètres")
+        right_box = QGroupBox("Parameters")
         
         # main layout
         right_main_layout = QVBoxLayout()
@@ -145,9 +206,9 @@ class StarReducApp(QMainWindow):
         right_form_layout = QFormLayout()
         right_main_layout.addLayout(right_form_layout)
 
-        param1 = QLineEdit("TODO")
-        param1.setReadOnly(True)
-        right_form_layout.addRow("Param 1 :", param1)
+        self.param_nb_stars = QLineEdit()
+        self.param_nb_stars.setReadOnly(True)
+        right_form_layout.addRow("Number stars :", self.param_nb_stars)
 
         param2 = QLineEdit("TODO")
         param2.setReadOnly(True)
@@ -187,8 +248,15 @@ class StarReducApp(QMainWindow):
 
     
     def on_item_clicked(self, item):
+        '''
+        load the original image matching with the selected fits
+        
+        :param item: the fits'name selected
+        '''
         filename = item.text()
         fits_path = os.path.join(FOLDER_EXAMPLES, filename)
+        
+        self.current_fits = fits_path
 
         # Load fits
         data, header = p2.load_fits(fits_path)
@@ -204,6 +272,59 @@ class StarReducApp(QMainWindow):
                 Qt.TransformationMode.SmoothTransformation
             )
         )
+    
+    
+    def schedule_update(self):
+        '''
+        reload the timer : if the slider is moved again, it pushes back the calculations
+        
+        :param self: Description
+        '''
+        if not self.current_fits:
+            return
+    
+        self.update_timer.start(500)  # 500 ms
+    
+    
+    def update_process_image(self):
+        if not self.current_fits:
+            return
+        
+        # read sliders'values
+        fwhm = self.slider_fwhm.value() / 10.0
+        threshold = self.slider_threshold.value()
+        erode_kernel = self.slider_erode_kernel.value()
+        nb_iter = self.slider_nb_iteration.value()
+        
+        # do processus starless
+        data, header = p2.load_fits(self.current_fits)
+        image = p2.handler_color_image(data)
+        image_gray = p2.convert_in_grey(image)
+        
+        sources = p2.detect_stars(image_gray, fwhm, threshold)
+        # avoid errors if source is None
+        if sources is None:
+            self.nb_stars = 0
+            return        
+                                                                  
+        self.nb_stars = 0 if sources is None else len(sources)
+        self.param_nb_stars.setText(str(self.nb_stars))
+        mask = p2.star_mask(image_gray, sources)
+        mask_blur = p2.mask_effects(mask, (3,3), (3,3))
+        
+        Ierode = p2.erode_image(image_gray, (erode_kernel, erode_kernel), nb_iter)
+        
+        final_image = p2.combinate_mask_image(mask_blur, Ierode, image_gray)
+        
+        # load the final image
+        self.img_right.setPixmap(
+            QPixmap("results/final_image/image_finale.png").scaled(
+                500, 500,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        )
+        
 
 
 if __name__ == "__main__":
