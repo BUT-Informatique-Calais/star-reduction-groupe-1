@@ -6,7 +6,9 @@ from photutils.detection import DAOStarFinder
 from astropy.stats import sigma_clipped_stats
 
 
-DIR_RESULTS = './results/'
+DIR_RESULTS_ORIGINAL = './results/original/'
+DIR_RESULTS_MASK = './results/masks/'
+DIR_RESULTS_FINAL = './results/final_image/'
 
 def load_fits(path: str):
     '''
@@ -60,12 +62,12 @@ def handler_color_image(data):
         
         image = normalize_img(data)
         # Save the data as a png image (no cmap for color images)
-        save_image(DIR_RESULTS + 'original.png', image)
+        save_image(DIR_RESULTS_ORIGINAL + 'original.png', image)
         
     else:
         # Monochrome image - no need to transpose anything
         image = normalize_img(data)
-        save_image(DIR_RESULTS + '/original.png', data, cmap='gray')
+        save_image(DIR_RESULTS_ORIGINAL + '/original.png', data, cmap='gray')
     return image
 
 def save_image(path, data, cmap=None):
@@ -144,16 +146,16 @@ def mask_effects(mask, kernelDilate=(3,3), kernelGaussian=(3,3)):
     '''
     Apply a dilation on stars of the mask and apply a gaussian blur
     
-    save an image of results : the masks with stars dilated and the mask with yhe gaussian blur applied
+    save an image of results : the masks with stars dilated and the mask with gaussian blur applied
     
     :param mask: the star mask
-    :param kernelDilate: couple of integers determine the size of kernel for the dilation of stars before gaussian blur
-    :param kernelGaussian: couple of integers determine the size of kernel for the gaussian blur
+    :param kernelDilate: couple of integers who determinate the size of kernel for the dilation of stars before gaussian blur
+    :param kernelGaussian: couple of integers who determinate the size of kernel for the gaussian blur
     '''
     # thickening of the star mask
     kernel = np.ones(kernelDilate, np.float32)
     mask_dilate = cv.dilate(mask, kernel)
-    save_image(DIR_RESULTS + 'mask_stars_dilate.png', mask_dilate, cmap='gray')
+    save_image(DIR_RESULTS_MASK + 'mask_stars_dilate.png', mask_dilate, cmap='gray')
 
     # Gaussian blur of the mask
     maskFlouGaussien = cv.GaussianBlur(
@@ -162,7 +164,7 @@ def mask_effects(mask, kernelDilate=(3,3), kernelGaussian=(3,3)):
         sigmaX = 0
     )
     maskFlouGaussien = np.clip(maskFlouGaussien, 0.0, 1.0)
-    save_image(DIR_RESULTS + 'maskFlouGaussien.png', maskFlouGaussien, cmap='gray')
+    save_image(DIR_RESULTS_MASK + 'maskFlouGaussien.png', maskFlouGaussien, cmap='gray')
     
     return maskFlouGaussien
 
@@ -186,9 +188,9 @@ def combinate_mask_image(mask, imgEroded, image_origin):
     :param imgEroded: the eroded image
     :param image_origin: the origin image convert in grey
     '''
-    image_finale = (mask * imgEroded) + ((1 - mask) * image_origin)
-    save_image(DIR_RESULTS + 'image_finale.png', image_finale, cmap='gray')
-    return image_finale
+    final_image = (mask * imgEroded) + ((1 - mask) * image_origin)
+    save_image(DIR_RESULTS_FINAL + 'image_finale.png', final_image, cmap='gray')
+    return final_image
 
 
 if __name__ == "__main__":
@@ -200,22 +202,22 @@ if __name__ == "__main__":
     # Process image
     image = handler_color_image(data)
     image_gray = convert_in_grey(image)
-    save_image(DIR_RESULTS + 'imageGrey.png', image_gray, cmap='gray')
+    save_image(DIR_RESULTS_ORIGINAL + 'imageGrey.png', image_gray, cmap='gray')
     
     # data stars recovery and creation of mask
     sources = detect_stars(image_gray, fwhm=4.0, threshold=5.0)
     mask = star_mask(image_gray, sources)
-    save_image(DIR_RESULTS + 'mask_stars_points.png', mask, cmap='gray')
+    save_image(DIR_RESULTS_MASK + 'mask_stars_points.png', mask, cmap='gray')
     
     # Apply Gaussian Blur
     maskFlouGaussien = mask_effects(mask, (3,3), (3,3))
     
     # Erode Image
     Ierode = erode_image(image_gray, (2,2), 3)
-    save_image(DIR_RESULTS + 'image_erode.png', Ierode, cmap='gray')
+    save_image(DIR_RESULTS_FINAL + 'image_erode.png', Ierode, cmap='gray')
     
     # creation final Image
-    image_finale = combinate_mask_image(maskFlouGaussien, Ierode, image_gray)
+    final_image = combinate_mask_image(maskFlouGaussien, Ierode, image_gray)
 
 
 
