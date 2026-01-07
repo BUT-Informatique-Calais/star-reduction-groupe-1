@@ -222,6 +222,9 @@ if __name__ == "__main__":
     save_image(DIR_RESULTS_FINAL + "image_erode.png", Ierode, cmap="gray")
     # creation final Image
     final_image = combinate_mask_image(maskFlouGaussien, Ierode, image_gray)
+    final_fit = fits.writeto(
+        DIR_RESULTS_FINAL + "final_combined_phase2.fits", final_image, header
+    )
     print("============= check du datatype ===================")
     print("datatype grayimage:", image_gray.dtype)
     print("datatype Ierode:", Ierode.dtype)

@@ -202,7 +202,10 @@ if __name__ == "__main__":
 
     # Combine starless image and reduced staronly image
     final = combinate_mask_image(starless_file_gray, star_reduced)
-    save_image(DIR_RESULTS_FINAL + "final_combined.png", final, cmap="gray")
+    save_image(DIR_RESULTS_FINAL + "final_combined_phase3.png", final, cmap="gray")
+    final_fit = fits.writeto(
+        DIR_RESULTS_FINAL + "final_combined_phase3.fits", final, header_starless
+    )
 
     # Debug datatype
     print("============= check of datatype ===================")
