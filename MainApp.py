@@ -1,10 +1,11 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QGroupBox, QLabel, QHBoxLayout, QListWidget, QPushButton, QSlider, QLineEdit, QFormLayout
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QGroupBox, QLabel, QHBoxLayout, QListWidget, QPushButton, QSlider, QLineEdit, QFormLayout, QCheckBox, QFileDialog
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt, QTimer
 import qdarkstyle # Dark mode
 import os
 import phase2forApp as p2
+import shutil
 
 FOLDER_EXAMPLES = "./examples"
 
@@ -94,8 +95,34 @@ class StarReducApp(QMainWindow):
         center_layout = QVBoxLayout()
         center_box.setLayout(center_layout)
 
-        # Button
-        center_layout.addWidget(QPushButton("TODO OR NOT TODO"))
+        # Checkbox
+        choice_row = QHBoxLayout()
+        
+        # first column
+        col_1 = QVBoxLayout()
+        self.case_p2 = QCheckBox()
+        label_case_p2 = QLabel("Standard")
+        label_case_p2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        col_1.addWidget(self.case_p2, alignment=Qt.AlignmentFlag.AlignCenter)
+        col_1.addWidget(label_case_p2)
+        
+        # second column
+        col_2 = QVBoxLayout()
+        self.case_starNet = QCheckBox()
+        label_case_starNet = QLabel("StarNet")
+        label_case_starNet.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        col_2.addWidget(self.case_starNet, alignment=Qt.AlignmentFlag.AlignCenter)
+        col_2.addWidget(label_case_starNet)
+        
+        # Assemblage
+        choice_row.addLayout(col_1)
+        choice_row.addLayout(col_2)
+        center_layout.addLayout(choice_row)
+        
+        self.case_p2.setChecked(True)  # default option
+
+        self.case_p2.toggled.connect(self.on_action_toggled)
+        self.case_starNet.toggled.connect(self.on_action_toggled)
         
         center_layout.addStretch(1)
         
@@ -230,8 +257,10 @@ class StarReducApp(QMainWindow):
         right_main_layout.addStretch(1)
         
         # Button registration
-        btn_save = QPushButton("Enregistrer Image")
+        btn_save = QPushButton("Save Image")
         right_main_layout.addWidget(btn_save)
+        
+        btn_save.clicked.connect(self.save_image_as)
         
         # ==================== Add elements in Bottom =======================
         bottom_layout = QHBoxLayout()
@@ -287,6 +316,12 @@ class StarReducApp(QMainWindow):
     
     
     def update_process_image(self):
+        '''
+        Calculate all processus for create the final image
+        
+        Read sliders'values for use in parameters of the differents function
+        and display the final image in appropriate box
+        '''
         if not self.current_fits:
             return
         
@@ -325,6 +360,45 @@ class StarReducApp(QMainWindow):
             )
         )
         
+        
+    def on_action_toggled(self):
+        '''
+        avoid check all checkbox in window
+        
+        if a checkbox is check, others are unchecked
+        if a change is update, the final image is calculate again
+        '''
+        # exclusive checkbox
+        sender = self.sender()
+        if sender == self.case_p2 and self.case_p2.isChecked():
+            self.case_starNet.setChecked(False)
+        elif sender == self.case_starNet and self.case_starNet.isChecked():
+            self.case_p2.setChecked(False)
+
+        # calculate again when an action is modify
+        self.schedule_update() 
+        
+    def save_image_as(self):
+        # the final image's path
+        src_path = "results/final_image/image_finale.png"
+
+        # avoid file exists
+        if not os.path.exists(src_path):
+            return
+
+        # open DialogBox
+        dest_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save image",
+            "",
+            "Images PNG (*.png);;Images JPG (*.jpg)"
+        )
+
+        if not dest_path:
+            return  # annulation user
+
+        # copy image
+        shutil.copyfile(src_path, dest_path)
 
 
 if __name__ == "__main__":
