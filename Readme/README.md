@@ -76,7 +76,7 @@ Example files are located in the `examples/` directory. You can run the scripts 
 
 
 
-## Jour 3 — Phase 3 : Astrométrie via API (Terminée)
+## Jour 3 — Phase 3 : Astrométrie via API (Terminée) (Valentin Verstaevel)
 
 ## Fait 
 Documentation et recherche : Étude du fonctionnement de l'API Astrometry.net et de la librairie astroquery pour l'envoi et la récupération de données distantes.

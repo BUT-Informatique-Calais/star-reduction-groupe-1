@@ -128,7 +128,6 @@ def detect_stars_api(image_gray, header, api_key):
     print(f"\nImage ID : {sub_id}")
 
     # Wait for jobs be ready
-
     sub_info = ast._request('GET', f'https://nova.astrometry.net/api/submissions/{sub_id}')
     jobs = sub_info.json().get('jobs', [])
         
@@ -254,6 +253,17 @@ def combinate_mask_image(mask, imgEroded, image_origin):
     save_image(DIR_RESULTS_FINAL + 'image_finale.png', final_image, cmap='gray')
     return final_image
 
+def combinate_mask_color(mask, imgEroded, image_color_origin):
+    '''
+    Combinate the mask with the color image to recover colors
+    '''
+    final_color = np.zeros_like(image_color_origin)
+    # Apply to each channel R, G, B
+    for i in range(3):
+        final_color[:,:,i] = (mask * imgEroded) + ((1 - mask) * image_color_origin[:,:,i])
+    
+    save_image(DIR_RESULTS_FINAL + 'image_finale_couleur.png', final_color)
+    return final_color
 
 if __name__ == "__main__":
     
@@ -287,3 +297,7 @@ if __name__ == "__main__":
         
     # final Image creation
     final_image = combinate_mask_image(maskFlouGaussien, Ierode, image_gray)
+
+    if image.ndim == 3:
+        # If color image, we use the color combination
+        final_image = combinate_mask_color(maskFlouGaussien, Ierode, image)
