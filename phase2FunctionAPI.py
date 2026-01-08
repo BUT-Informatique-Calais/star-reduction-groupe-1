@@ -6,7 +6,7 @@ from photutils.detection import DAOStarFinder
 from astropy.stats import sigma_clipped_stats
 import os
 from astroquery.astrometry_net import AstrometryNet
-import time
+
 
 
 DIR_RESULTS_ORIGINAL = './resultsAPI/original/'
@@ -128,7 +128,7 @@ def detect_stars_api(image_gray, header, api_key):
     print(f"\nImage ID : {sub_id}")
 
     # Wait for jobs be ready
-    time.sleep(2)
+
     sub_info = ast._request('GET', f'https://nova.astrometry.net/api/submissions/{sub_id}')
     jobs = sub_info.json().get('jobs', [])
         
