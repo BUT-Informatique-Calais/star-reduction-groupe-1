@@ -125,7 +125,7 @@ def detect_stars_api(image_gray, header, api_key):
     # Get the submission_id for ask detailed results
     wcs_header, sub_id = ast.solve_from_image(temp_fits,force_image_upload=True,return_submission_id=True,solve_timeout=300) # 5 min max
 
-    print(f"Image ID : {sub_id}")
+    print(f"\nImage ID : {sub_id}")
 
     # Wait for jobs be ready
     time.sleep(2)
@@ -153,10 +153,12 @@ def detect_stars_api(image_gray, header, api_key):
             sources.rename_column('field_y', 'ycentroid')
             
             print(f"{len(sources)} stars extracted with the API")
-        return sources
-
+        
         # Clean temporary files
-        if os.path.exists(temp_fits): os.remove(temp_fits)
+        if os.path.exists(temp_fits): 
+            os.remove(temp_fits)
+
+        return sources
     
 def detect_stars(image_gray, fwhm, threshold, sigma=3.0):
     '''
