@@ -118,6 +118,9 @@ def mask_from_stars_starnet(stars_img, thresh=0.02):
 
     normalize = normalize_img(stars_gray)
     mask = (normalize > thresh).astype(np.float32)
+
+    save_image(DIR_RESULTS_MASK + "mask_stars_thresh.png", mask, cmap="gray")
+
     return mask
 
 
@@ -140,9 +143,26 @@ def mask_effects(mask, kernelDilate=(3, 3), kernelGaussian=(3, 3), iterations=1)
     # Gaussian blur of the mask
     maskFlouGaussien = cv.GaussianBlur(mask_dilate, ksize=kernelGaussian, sigmaX=0)
     maskFlouGaussien = np.clip(maskFlouGaussien, 0.0, 1.0)
-    save_image(DIR_RESULTS_MASK + "maskFlouGaussien.png", maskFlouGaussien, cmap="gray")
+    save_image(DIR_RESULTS_MASK + "star_blurred.png", maskFlouGaussien, cmap="gray")
 
     return maskFlouGaussien
+
+
+def reduce_stars(stars_img, mask, alpha=0.5):
+    """
+    Reduce stars in the star image using the mask
+
+    :param stars_img: the star-only image
+    :param mask: the mask
+    :param alpha: reduction factor (0 = no reduction, 1 = full removal)
+    """
+
+    # alpha in 0 and 1
+    alpha = float(np.clip(alpha, 0.0, 1.0))
+    # apply reduction
+    star_reduced = stars_img * (1 - alpha * mask)
+    save_image(DIR_RESULTS_MASK + "star_reduced.png", star_reduced, cmap="gray")
+    return star_reduced
 
 
 def combinate_mask_image(image_starless, image_starreduced):
@@ -154,8 +174,16 @@ def combinate_mask_image(image_starless, image_starreduced):
     :param image_origin: the origin image convert in grey
     """
     final_image = image_starless + image_starreduced
-    # save_image(DIR_RESULTS_FINAL + "image_finale.png", final_image, cmap="gray")
-    return final_image
+    save_image(
+        DIR_RESULTS_FINAL + "final_combined_phase3.png", final_image, cmap="gray"
+    )
+    final_fit = fits.writeto(
+        DIR_RESULTS_FINAL + "final_combined_phase3.fits",
+        final_image,
+        header_starless,
+        overwrite=True,
+    )
+    return final_image, final_fit
 
 
 if __name__ == "__main__":
@@ -189,23 +217,16 @@ if __name__ == "__main__":
     starless_file_gray = convert_in_grey(starless)
 
     # Create mask from staronly image
-    mask = mask_from_stars_starnet(staronly_gray, thresh=0.03)
-    save_image(DIR_RESULTS_MASK + "mask_stars_thresh.png", mask, cmap="gray")
+    mask = mask_from_stars_starnet(staronly_gray, thresh=0.05)
 
     # Apply Gaussian Blur
     maskFlouGaussien = mask_effects(mask, (3, 3), (3, 3), iterations=1)
-    save_image(DIR_RESULTS_MASK + "star_blurred.png", maskFlouGaussien, cmap="gray")
 
-    # Reduce staronly image with the mask
-    star_reduced = staronly_gray * maskFlouGaussien
-    save_image(DIR_RESULTS_MASK + "star_reduced.png", star_reduced, cmap="gray")
+    # Reduce staronly image with the mask and alpha factor
+    star_reduced = reduce_stars(staronly_gray, maskFlouGaussien, alpha=0.8)
 
     # Combine starless image and reduced staronly image
-    final = combinate_mask_image(starless_file_gray, star_reduced)
-    save_image(DIR_RESULTS_FINAL + "final_combined_phase3.png", final, cmap="gray")
-    final_fit = fits.writeto(
-        DIR_RESULTS_FINAL + "final_combined_phase3.fits", final, header_starless
-    )
+    final, final_fit = combinate_mask_image(starless_file_gray, star_reduced)
 
     # Debug datatype
     print("============= check of datatype ===================")

@@ -4,7 +4,7 @@
 
 - Dhesdin Valentin
 - Gobfert Frédéric
-- Vaerstavel Valentin
+- Verstaevel Valentin
 
 ## Objectif
 
@@ -40,7 +40,7 @@ Python + venv, `astropy`, `photutils` (DAOStarFinder), `opencv-python` (masques/
   - bruit de fond estimé par `mad_std`
   - fond de ciel par `median`
   - paramètres ajustés (`fwhm`, `threshold`)
-- Création d’un masque binaire : fond noir (0), étoiles en blanc (255) via cercles sur les centroids.
+- Création d’un masque binaire : fond noir (0), étoiles en blanc (255) via cercles sur les centroids x et y.
 - Vérification via un overlay (étoiles en rouge).
 
 ### Étape B : réduction localisée
@@ -48,19 +48,18 @@ Python + venv, `astropy`, `photutils` (DAOStarFinder), `opencv-python` (masques/
 - Calcul sur **image grise FITS float** (pas en 0..255 pour les traitements car trop de perte de qualité).
 - Création `Ierode` (érosion) sur l’image float.
 - Flou gaussien du masque (bords doux)
-- Mélange progressif : Ifinal = (M × Ierode) + ((1 − M) × Ioriginal)
+- Interpolation : Ifinal = (M × Ierode) + ((1 − M) × Ioriginal)
 - Exports :
-  - PNG de visualisation via `matplotlib` avec imsave et pas en créeant de figure car pour du traitement d'image, il vaut mieux garder le PNG pixel pour pixel.
+- PNG de visualisation via `matplotlib` avec imsave et pas en créeant de figure car pour du traitement d'image, il vaut mieux garder le PNG pixel pour pixel.
 
 ### Difficultés + solutions
 
--
 - **Compréhension/tuning `fwhm` et `threshold`** → tests : baisse de `fwhm` + ajustement `threshold` pour mieux détecter les étoiles utiles.
 - **Différence entre uint8 et float en rendu final** : la différence est surtout importante pour préserver la précision scientifique : Travailler au maximum en float32
 
 ---
 
-### Jour 3 - Phase 3 (Détection ML - Dhesdin Valentin)
+### **Jour 3 - Phase 3 (Détection ML - Dhesdin Valentin)**
 
 #### Objectif de la phase 3
 
@@ -114,6 +113,8 @@ Puis réduire uniquement la couche étoiles et recombiner les deux.
 
 **Conclusion :** globalement, la phase 3 (ML) donne des étoiles **légèrement moins étirées** et **légèrement plus ronde** que la phase 2 .
 
+**WARNING** Pour avoir les deux images comparé, il faut executer le fichier python d'origine phase 2 : **"main_p2_origin.py"** et le fichier phase 3 (StarNet) : **"main_p3_starnet.py"**
+
 <table>
   <tr>
     <th>Phase 2 (DAOStarFinder)</th>
@@ -130,22 +131,9 @@ Puis réduire uniquement la couche étoiles et recombiner les deux.
 </table>
 
 **Conclusion bis:** la phase 3 (ML) rend beaucoup plus noir(sombre) le fond du ciel, ce qui n'est pour moi pas une bonne chose du tout, Starnet touche à ça.
+J'ai tenté de le réduire via la réduction d'étoiles par un facteur [0,1] mais cela n'est pas parfait.
 
-### Jour 3 - Phase 3 (xxxxx - Frederic)
-
-#### Objectif de la phase 3
-
-#### Choix de la méthode ML
-
-#### Fait
-
-#### Problèmes rencontrés + solutions
-
-#### Différence Phase 2 vs Phase 3
-
-#### Interprétation des résultats
-
-### Jour 3 - Phase 3 (xxxxx - Valentin VAestarvel)
+### **Jour 3 - Phase 3 (Interface Utilisateur - Gobfert Frederic)**
 
 #### Objectif de la phase 3
 
@@ -159,7 +147,25 @@ Puis réduire uniquement la couche étoiles et recombiner les deux.
 
 #### Interprétation des résultats
 
-## Execution et interprétation des résultats :
+### Jour 3 — Phase 3 : Astrométrie via API (Valentin Verstaevel)
+
+#### Fait
+
+Documentation et recherche : Étude du fonctionnement de l'API Astrometry.net et de la librairie astroquery pour l'envoi et la récupération de données distantes.
+
+Intégration API : Envoi de l'image pour un "Plate-solving" (reconnaissance du champ d'étoiles via base de données mondiale).
+
+Récupération du catalogue : Extraction du fichier corr.fits contenant les positions exactes ($X, Y$) des étoiles confirmées par l'API.
+
+#### Difficultés + solutions
+
+Fichier temporaire indispensable : L'API nécessite un fichier physique avec son Header pour fonctionner. Solution : Création d'un temp_for_api.fits incluant les données et l'entête d'origine, supprimé automatiquement après l'envoi.
+
+Bug de réception astroquery : L'envoi fonctionnait mais la récupération des résultats (jobs / données) échouait malgré un envoi réussi. Solution : Contournement via des requêtes HTTP directes (ast.\_request) sur l'URL du Job ID pour forcer le téléchargement du catalogue.
+
+Erreur "No SIMPLE card" : Problème de lecture du fichier retourné par le serveur. Solution : Lecture forcée via Table(hdul[1].data) pour extraire proprement les colonnes field_x et field_y.
+
+Suite à un échec de push causé par des conflits de versions sur astroquery et des fichiers de configuration corrompus, j'ai dû supprimer et reconstruire l'environnement virtuel (.venv). Cette purge a permis de réinstaller proprement les dépendances via pip et de débloquer la synchronisation avec la branche API.
 
 ```bash
 python -m venv .venv
