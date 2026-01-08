@@ -1,4 +1,4 @@
-#!/home/dewey/Documents/GitHub/star-reduction-groupe-1/.venv/bin/python3
+#!/home/dewey/Documents/GitHub/.venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys

@@ -92,3 +92,5 @@ Fichier temporaire indispensable : L'API nécessite un fichier physique avec son
 Bug de réception astroquery : L'envoi fonctionnait mais la récupération des résultats (jobs / données) échouait malgré un envoi réussi.  Solution : Contournement via des requêtes HTTP directes (ast._request) sur l'URL du Job ID pour forcer le téléchargement du catalogue.
 
 Erreur "No SIMPLE card" : Problème de lecture du fichier retourné par le serveur. Solution : Lecture forcée via Table(hdul[1].data) pour extraire proprement les colonnes field_x et field_y.
+
+Suite à un échec de push causé par des conflits de versions sur astroquery et des fichiers de configuration corrompus, j'ai dû supprimer et reconstruire l'environnement virtuel (.venv). Cette purge a permis de réinstaller proprement les dépendances via pip et de débloquer la synchronisation avec la branche API.
