@@ -243,12 +243,19 @@ Example files are located in the `examples/` directory. You can run the scripts 
 ## Preview :
 
 - Dossier results/original
-  - Original (Image original fourni)
+  - starless (Image original uniquement sans étoiles fourni par starnet)
+  - staronly (Image original uniquement étoiles fourni par starnet)
 - Dossier results/mask
-  - Masque (Masque binaire sur étoile détectée)
-  - Masque Flou Gaussien (Reprise du masque binaire avec)
-  - Overlay
-- Dossier results/image_final
-  - Ierode
-  - Image grise original
-  - IMage final
+  - mask_stars_thresh (MAsque binaire avec pixel sur étoiles)
+  - mask_stars_dilate (Masque binaire avec agrandissement des pixels détection étoiles)
+  - star_blurred (Masque avec le flou appliqué)
+  - star_reduced (Masque avec réduction appliqué)
+- Dossier resultsAPI
+  - cf même dossiers que phase2
+- Dossier results/compare
+  - before_reduced (Avant réduction)
+  - after_reduced (Après réduction)
+  - diff_abs_between (différence entre les deux images)
+- Dossier results/final_image
+  - final_combined_phase3.fits (Image exportée en .FITS pour SIRIL)
+  - final_combined_phase3.png (Image save pour preview en PNG)
