@@ -41,7 +41,7 @@ class StarReducApp(QMainWindow):
         # ========================= Left Image ============================
         self.box_left = QGroupBox()
         self.box_left.setTitle("Original Image")
-        self.box_left.setMaximumHeight(450)
+        self.box_left.setMaximumHeight(650)
         layout_left = QVBoxLayout()
         self.box_left.setLayout(layout_left)
 
@@ -54,7 +54,7 @@ class StarReducApp(QMainWindow):
         # hidden if daefault option and showed if starNet
         self.box_starNet = QGroupBox()
         self.box_starNet.setTitle("Starless")
-        self.box_starNet.setMaximumHeight(450)
+        self.box_starNet.setMaximumHeight(650)
         layout_center = QVBoxLayout()
         self.box_starNet.setLayout(layout_center)
 
@@ -66,7 +66,7 @@ class StarReducApp(QMainWindow):
 
         # ========================= Right Image ===========================
         box_right = QGroupBox("Processed Image")
-        box_right.setMaximumHeight(450)
+        box_right.setMaximumHeight(650)
         layout_right = QVBoxLayout()
         box_right.setLayout(layout_right)
 
@@ -279,7 +279,7 @@ class StarReducApp(QMainWindow):
         self.center_layout_netstar.addWidget(self.value_label_slider_netstar_threshold)
 
         # Second Slider alpha
-        self.slider_netstar_alpha_label = QLabel("Alpha : reduce corefficient")
+        self.slider_netstar_alpha_label = QLabel("Alpha : reduction coefficient")
         self.slider_netstar_alpha_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.slider_netstar_alpha = QSlider(Qt.Orientation.Horizontal)
         self.slider_netstar_alpha.setMinimum(0)
@@ -446,6 +446,8 @@ class StarReducApp(QMainWindow):
         else:
             self.on_item_clicked(item)
         
+        self.schedule_update() 
+        
     
     
     def schedule_update(self):
@@ -454,10 +456,16 @@ class StarReducApp(QMainWindow):
         
         :param self: Description
         '''
-        if not self.current_fits:
-            return
-    
-        self.update_timer.start(500)  # 500 ms
+        # Standard
+        if not self.is_starnet_model():
+            if not self.current_fits:
+                return
+        # StarNet
+        else:
+            if not self.current_fits_starless or not self.current_fits_staronly:
+                return
+
+        self.update_timer.start(200)  # 200 ms
     
     
     def update_process_image(self):
@@ -507,12 +515,12 @@ class StarReducApp(QMainWindow):
     
     def update_process_starnet(self):
         
-        if not self.current_fits_starless and not self.current_fits_staronly :
+        if not self.current_fits_starless or not self.current_fits_staronly :
             return
         
         # read sliders'values
-        alpha = self.slider_alpha.value() / 10.0
-        thresh = self.slider_threshold.value() / 100.0
+        alpha = self.slider_netstar_alpha.value() / 10.0
+        thresh = self.slider_netstar_threshold.value() / 100.0
         
         # Load starless and apply handler_color_image for normalization
         data_starless, header_starless = p3.load_fits(self.current_fits_starless)
@@ -539,10 +547,10 @@ class StarReducApp(QMainWindow):
             starless_file_gray, staronly_gray, star_reduced
         )
 
-        blink = p3.blink_image(before, after, delay=0.5, n=10)
+        # blink = p3.blink_image(before, after, delay=0.5, n=10)
 
         # Combine starless image and reduced staronly image
-        final, final_fit = p3.combinate_mask_image(starless_file_gray, star_reduced)
+        final = p3.combinate_mask_image(starless_file_gray, star_reduced)
 
         # load the final image
         self.img_right.setPixmap(
@@ -558,7 +566,7 @@ class StarReducApp(QMainWindow):
         if (self.is_starnet_model()):
             self.update_process_starnet()
         else:
-            self.update_process_image
+            self.update_process_image()
         
     
     def on_model_changed(self, button, checked):
@@ -615,5 +623,6 @@ if __name__ == "__main__":
     app.setStyleSheet(qdarkstyle.load_stylesheet()) # Apply dark style
     
     window = StarReducApp()
-    window.show()
+    window.showMaximized()
+  
     sys.exit(app.exec())

@@ -293,55 +293,13 @@ def combinate_mask_image(image_starless, image_starreduced):
     save_image(
         DIR_RESULTS_FINAL + "final_combined_phase3.png", final_image, cmap="gray"
     )
-    final_fit = fits.writeto(
-        DIR_RESULTS_FINAL + "final_combined_phase3.fits",
-        final_image,
-        header_starless,
-        overwrite=True,
-    )
-    return final_image, final_fit
-
-
-
-def fits_to_png(fits_path, png_path, cmap="gray"):
-    data = fits.getdata(fits_path)
-    img = np.asarray(data, dtype=np.float32)
-
-    # --- cas 3D : (H, W, C) ou (C, H, W) ---
-    if img.ndim == 3:
-        # si c'est (C, H, W) avec C=3 ou 4, on transpose en (H, W, C)
-        if img.shape[0] in (3, 4) and img.shape[2] not in (3, 4):
-            img = np.transpose(img, (1, 2, 0))
-
-        # si c'est (H, W, 1) -> on squeeze en 2D
-        if img.shape[2] == 1:
-            img = img[:, :, 0]
-
-        # si c'est (H, W, C) mais C pas 3/4 -> on prend un canal (0) et on passe en 2D
-        elif img.shape[2] not in (3, 4):
-            img = img[:, :, 0]
-
-    # --- normalisation ---
-    mn = np.nanmin(img)
-    mx = np.nanmax(img)
-    if not np.isfinite(mn) or not np.isfinite(mx) or mx == mn:
-        raise ValueError(f"Données FITS invalides (min={mn}, max={mx}) dans {fits_path}")
-
-    img = (img - mn) / (mx - mn)
-    img = np.clip(img, 0.0, 1.0)
-
-    # --- écriture ---
-    out_dir = os.path.dirname(png_path)
-    if out_dir:
-        os.makedirs(out_dir, exist_ok=True)
-
-    # si 2D -> cmap, si 3D -> sans cmap
-    if img.ndim == 2:
-        plt.imsave(png_path, img, cmap=cmap)
-    else:
-        plt.imsave(png_path, img)
-
-    return True
+    # final_fit = fits.writeto(
+    #     DIR_RESULTS_FINAL + "final_combined_phase3.fits",
+    #     final_image,
+    #     header_starless,
+    #     overwrite=True,
+    # )
+    return final_image#, final_fit
 
 
 if __name__ == "__main__":
@@ -355,8 +313,8 @@ if __name__ == "__main__":
     Wee combine the starless picture and the reduced staronly picture to obtain a final
     """
     # Load starless file and starfile
-    starless_file = "/home/valentin/astro/star_reduction/starless_test_M31_linear.fit"
-    staronly_file = "/home/valentin/astro/star_reduction/starmask_test_M31_linear.fit"
+    starless_file = "star_reduction/starless_test_M31_linear.fit"
+    staronly_file = "star_reduction/starmask_test_M31_linear.fit"
 
     # Load starless and apply handler_color_image for normalization
     data_starless, header_starless = load_fits(starless_file)
