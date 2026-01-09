@@ -553,13 +553,12 @@ class StarReducApp(QMainWindow):
             )
         )
     
-    def update_process_image_choice(self, item):
+    def update_process_image_choice(self):
         # Handler clic on item
         if (self.is_starnet_model()):
-            self.on_item_clicked_starnet(item)
+            self.update_process_starnet()
         else:
-            self.on_item_clicked(item)
-            update_process_image_choice
+            self.update_process_image
         
     
     def on_model_changed(self, button, checked):
