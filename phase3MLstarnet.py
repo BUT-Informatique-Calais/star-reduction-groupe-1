@@ -1,5 +1,6 @@
 from astropy.io import fits
 import matplotlib.pyplot as plt
+import time
 import cv2 as cv
 import numpy as np
 from photutils.detection import DAOStarFinder
@@ -10,6 +11,7 @@ import os
 DIR_RESULTS_ORIGINAL = "./results/original/"
 DIR_RESULTS_MASK = "./results/masks/"
 DIR_RESULTS_FINAL = "./results/final_image/"
+DIR_RESULTS_COMPARE = "./results/compare/"
 
 
 def load_fits(path: str):
@@ -66,12 +68,12 @@ def handler_color_image(data):
 
         image = normalize_img(data)
         # Save the data as a png image (no cmap for color images)
-        save_image(DIR_RESULTS_ORIGINAL + "original.png", image)
+        # save_image(DIR_RESULTS_ORIGINAL + "original.png", image)
 
     else:
         # Monochrome image - no need to transpose anything
         image = normalize_img(data)
-        save_image(DIR_RESULTS_ORIGINAL + "/original.png", image, cmap="gray")
+        # save_image(DIR_RESULTS_ORIGINAL + "/original.png", image, cmap="gray")
     return image
 
 
@@ -85,6 +87,80 @@ def save_image(path, data, cmap=None):
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)
     plt.imsave(path, data, cmap=cmap)
+
+
+def compare_before_after(starless_gray_img, staronly_gray_img, star_reduced_img):
+    """build Before and after images for comparison after
+
+    params:
+        starless_gray_img : image without stars
+        staronly_gray_img : image with only stars
+        star_reduced_img : image with reduced stars
+
+    Returns:
+        before : image before reduction
+        after : image after reduction
+    """
+    before = starless_gray_img + staronly_gray_img
+    after = starless_gray_img + star_reduced_img
+
+    return before.astype(np.float32), after.astype(np.float32)
+
+
+def compare_diff(before_img, after_img):
+    """
+    Compare the difference pixel by pixel before and after images
+
+    params:
+        before_img : image before reduction
+        after_img : image after reduction
+
+    Returns:
+        diff : difference image
+    """
+    diff = after_img - before_img
+    return diff.astype(np.float32)
+
+
+def save_diff_img(
+    starless_gray_img,
+    staronly_gray_img,
+    star_reduced_gray_img,
+    out_dir=DIR_RESULTS_COMPARE,
+):
+    """
+    Save the comparison images : before, after and difference
+
+    params:
+        starless_gray_img : image without stars
+        staronly_gray_img : image with only stars
+        star_reduced_gray_img : image with reduced stars
+        out_dir : output directory to save images
+    """
+
+    os.makedirs(out_dir, exist_ok=True)
+    before, after = compare_before_after(
+        starless_gray_img, staronly_gray_img, star_reduced_gray_img
+    )
+    diff = compare_diff(before, after)
+    diff_abs = np.abs(diff).astype(np.float32)
+
+    # save images comparison
+
+    before_visu_png = normalize_img(before)
+    after_visu_png = normalize_img(after)
+    diff_abs_visu_png = normalize_img(diff_abs)
+
+    save_image(
+        os.path.join(out_dir, "before_reduced.png"), before_visu_png, cmap="gray"
+    )
+    save_image(os.path.join(out_dir, "after_reduced.png"), after_visu_png, cmap="gray")
+    # absolute because diff can have negative values
+    save_image(
+        os.path.join(out_dir, "diff_abs_between.png"), diff_abs_visu_png, cmap="gray"
+    )
+
+    return before, after, diff_abs
 
 
 def convert_in_grey(image):
@@ -108,8 +184,8 @@ def convert_in_grey(image):
 
 def mask_from_stars_starnet(stars_img, thresh=0.02):
     """
-    stars_img : image stars-only (déjà normalisée 0..1 idéalement)
-    thresh : seuil pour dire "ici il y a une étoile"
+    stars_img : image stars-only (already normalized)
+    thresh : threshold to say "here is a star"
     """
     if stars_img.ndim == 3:
         stars_gray = np.mean(stars_img, axis=2).astype(np.float32)
@@ -124,9 +200,49 @@ def mask_from_stars_starnet(stars_img, thresh=0.02):
     return mask
 
 
+def blink_image(before, after, delay=1, n=5):
+    """
+    Blink two images for visual comparison
+
+    :param before: image before processing
+    :param after: image after processing
+    :param delay: delay between images in seconds
+    :param n: number of blinks
+    """
+    plt.figure()  # Create a new figure
+    fig = plt.gcf()  # Get the current figure (by id+)
+
+    for _ in range(n):
+
+        if not plt.fignum_exists(fig.number):
+            print("Blinking stopped by user.")
+            break
+        plt.imshow(before, cmap="gray")
+        plt.title("BEFORE")
+        fig.text(
+            0.5,
+            0.05,
+            "Click on close button to stop or wait the number of iterations",
+            ha="center",
+            va="bottom",
+        )
+        plt.axis("off")
+        plt.pause(delay)
+        if not plt.fignum_exists(fig.number):
+            print("Blinking stopped by user.")
+            break
+        plt.imshow(after, cmap="gray")
+        plt.title("AFTER")
+        plt.axis("off")
+        plt.pause(delay)
+        if not plt.fignum_exists(fig.number):
+            print("Blinking stopped by user.")
+            break
+
+
 def mask_effects(mask, kernelDilate=(3, 3), kernelGaussian=(3, 3), iterations=1):
     """
-    pply a dilation on stars of the mask and apply a gaussian blur
+    apply a dilation on stars of the mask and apply a gaussian blur
 
     save an image of results : the masks with stars dilated and the mask with gaussian blur applied
 
@@ -148,7 +264,7 @@ def mask_effects(mask, kernelDilate=(3, 3), kernelGaussian=(3, 3), iterations=1)
     return maskFlouGaussien
 
 
-def reduce_stars(stars_img, mask, alpha=0.5):
+def reduce_stars(stars_img, mask, alpha=0.8):
     """
     Reduce stars in the star image using the mask
 
@@ -224,6 +340,12 @@ if __name__ == "__main__":
 
     # Reduce staronly image with the mask and alpha factor
     star_reduced = reduce_stars(staronly_gray, maskFlouGaussien, alpha=0.8)
+
+    before, after, diff_abs = save_diff_img(
+        starless_file_gray, staronly_gray, star_reduced
+    )
+
+    blink = blink_image(before, after, delay=0.5, n=10)
 
     # Combine starless image and reduced staronly image
     final, final_fit = combinate_mask_image(starless_file_gray, star_reduced)

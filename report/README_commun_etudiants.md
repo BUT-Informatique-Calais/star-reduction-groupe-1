@@ -59,7 +59,15 @@ Python + venv, `astropy`, `photutils` (DAOStarFinder), `opencv-python` (masques/
 
 ---
 
-### **Jour 3 - Phase 3 (Détection ML - Dhesdin Valentin)**
+### **Jour 3 - Communication**
+
+Réunion discord afin de faire le point sur les avancées et quelles directions prendre.
+
+- 1 au matin
+- 1 début d'après-midi
+- 1 au soir (uniquement textuel)
+
+### **Jour 3/4 - Phase 3 (Détection ML - Dhesdin Valentin)**
 
 #### Objectif de la phase 3
 
@@ -97,7 +105,7 @@ Puis réduire uniquement la couche étoiles et recombiner les deux.
 - Ouverture de l'une dans Siril, récuperer le même étirement (MTF) et appliqué sur la deuxième image.
 - Sélection de même zones : Endroit (pixel) exact et grossissement exact entre les deux.
 
-#### Différence Phase 2 vs Phase 3 (en 1 phrase)
+#### Différence Phase 2 vs Phase 3
 
 - **Phase 2 :** on fabrique un masque avec DAOStarFinder puis on choisit automatiquement entre original et érodé via interpolation.
 - **Phase 3 :** le ML donne déjà `starless` + `staronly`, on réduit uniquement `staronly`, puis on recombine avec `starless`.
@@ -133,7 +141,58 @@ Puis réduire uniquement la couche étoiles et recombiner les deux.
 **Conclusion bis:** la phase 3 (ML) rend beaucoup plus noir(sombre) le fond du ciel, ce qui n'est pour moi pas une bonne chose du tout, Starnet touche à ça.
 J'ai tenté de le réduire via la réduction d'étoiles par un facteur [0,1] mais cela n'est pas parfait.
 
-### **Jour 3 - Phase 3 (Interface Utilisateur - Gobfert Frederic)**
+### **Jour 5 - Phase 3 (Comparateur avant/Après - Dhesdin Valentin)**
+
+#### Objectif de la phase 3
+
+Comparateur Avant/Après : Créez un outil de visualisation qui permet de superposer
+rapidement l’image originale et l’image traitée (fonction "clignotement" ou soustraction) pour
+détecter les pertes de détails dans la nébuleuse.
+
+#### Choix de la méthode
+
+**Création de 4 fonctions** :
+
+- compare_before_after -> Construit les images avant et après
+- compare_diff -> Compare (soustraction) la différence des deux images
+- save_diff_img -> récupère la différence des images, normalise les 3 et les enregistre en png
+- blink_image -> Gère un switch d'image entre avant et après via matplotlib
+
+#### Problèmes rencontrés + solutions
+
+- **Manque de connaissances si bibliothèque existant pour faire plus simple**
+- **Solution :** Gérer (manuellement) un switch de png dans une figure créer. (peut-être un peu lourd comme méthode)
+
+#### Différence Phase 2 vs Phase 3
+
+- **Phase 2 :** Pas d'outil de visualisationo
+- **Phase 3 :** Rajout de celui-ci via plt (matplotlib)
+
+#### Interprétation des résultats
+
+<table>
+  <tr>
+    <th>Phase 3 (Before)</th>
+    <th>Phase 3 (After)</th>
+    <th>Phase 3 (Difference between )</th>
+  </tr>
+  <tr>
+    <td width="33%">
+    <img src="../results/compare/before_reduced.png"/>
+    </td>
+    <td width="33%">
+   <img src="../results/compare/after_reduced.png"/>
+    </td>
+    <td width="33%">
+   <img src="../results/compare/diff_abs_between.png"/>
+    </td>
+  </tr>
+</table>
+
+**Conclusion :** L'outil de comparaison avant après permet de voir la différence en .png.
+C'est pour cela que lors de l'éxecution je créer une figure qui permet d'itérer entre les deux images, ou on voit nettement mieux la différence.
+
+### **Jour 3/4 - Phase 3 (Interface Utilisateur - Gobfert Frederic)**
 
 #### Objectif de la phase 3
 
@@ -147,7 +206,7 @@ J'ai tenté de le réduire via la réduction d'étoiles par un facteur [0,1] mai
 
 #### Interprétation des résultats
 
-### Jour 3 — Phase 3 : Astrométrie via API (Valentin Verstaevel)
+### **Jour 3 — Phase 3 : Astrométrie via API (Valentin Verstaevel)**
 
 #### Fait
 
