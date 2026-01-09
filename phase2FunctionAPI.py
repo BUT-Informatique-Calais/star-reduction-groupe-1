@@ -298,6 +298,4 @@ if __name__ == "__main__":
     # final Image creation
     final_image = combinate_mask_image(maskFlouGaussien, Ierode, image_gray)
 
-    if image.ndim == 3:
-        # If color image, we use the color combination
-        final_image = combinate_mask_color(maskFlouGaussien, Ierode, image)
+    final_image = combinate_mask_color(maskFlouGaussien, Ierode, image)
