@@ -1,5 +1,5 @@
 .venv/
 pycache/
 *.pyc
-StarNetCLI/
+StarNetCLI/*
 star_reduction/
