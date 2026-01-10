@@ -199,12 +199,14 @@ C'est pour cela que lors de l'éxecution je créer une figure qui permet d'itér
 **Création de l'interface de base** :
 
 ##### Jour 3
+
 - Concertation en groupe sur la maquette et les éléments devant apparaître.
 - Développement de l'interface de base avec pyQt
 - Réalisation des différents layouts et widgets
 - Essais et réglages des sliders OK
 
 ##### Jour 4 et 5
+
 - Restructuration de l'interface pour implémenter la méthode du modèle starnet
 - Ajout de widgets
 - Gestion de l'affichage ou non des widgets en fonction du modèle sélectionné
@@ -228,17 +230,20 @@ C'est pour cela que lors de l'éxecution je créer une figure qui permet d'itér
 #### Problèmes rencontrés + solutions
 
 **Problèmes liés à l'implémentation concrète des éléments** :
+
 - La factorisation:
-Nos premiers essais nous permettant de découvrir le fonctionnement nous ont fait développer en code procédural. Il a donc fallu factoriser cela afin de pouvoir appeler les fonctions dans notre UI.
+  Nos premiers essais nous permettant de découvrir le fonctionnement nous ont fait développer en code procédural. Il a donc fallu factoriser cela afin de pouvoir appeler les fonctions dans notre UI.
 
 - Le paramétrage des sliders:
-Chaque mouvement du slider impose à l'application un reclacul de toutes les valeurs intermédiaires et provoquait inéluctablement un crash de l'applciation. C'est pourquoi l'utilisation de QTimer a été indispensable pour gérer un laps de temps pendant lequel l'utilisateur fait varier les sliders avant de relancer les calculs de l'application.
+  Chaque mouvement du slider impose à l'application un reclacul de toutes les valeurs intermédiaires et provoquait inéluctablement un crash de l'applciation. C'est pourquoi l'utilisation de QTimer a été indispensable pour gérer un laps de temps pendant lequel l'utilisateur fait varier les sliders avant de relancer les calculs de l'application.
 
 **Problèmes liés à la réflexion de l'implémentation des différents modèles** :
+
 - Les "show / hide" des différents modules utiles au déploiement de l'un ou l'autre des modèles:
-J'ai fait le choix de développer dans un seul fichier l'UI en faisant appel à un import pour utiliser les fonctions de la phase 2. Mais ce choix, suffisant pour la phase 2, a compliqué l'exercice d'incorporer différents modèles de données à afficher dans la phase suivante et a certainement complexifié ce travail.
+  J'ai fait le choix de développer dans un seul fichier l'UI en faisant appel à un import pour utiliser les fonctions de la phase 2. Mais ce choix, suffisant pour la phase 2, a compliqué l'exercice d'incorporer différents modèles de données à afficher dans la phase suivante et a certainement complexifié ce travail.
 
 **Conclusion** :
+
 - Les deux modèles sont visualisables en cochant leurs cases respectives. Cependant le code de l'UI est difficilement réutilisable à mes yeux et aurait pu l'être plus facilement avec un système MVC ou un autre pattern design plus approprié; ce qui aurait permis d'intégrer également la vue avec API (qui actuellement dans le temps imparti m'a été impossible à faire)
 
 ### **Jour 3 — Phase 3 : Astrométrie via API (Valentin Verstaevel)**
@@ -278,12 +283,19 @@ Example files are located in the `examples/` directory. You can run the scripts 
 ## Preview :
 
 - Dossier results/original
-  - Original (Image original fourni)
+  - starless (Image original uniquement sans étoiles fourni par starnet)
+  - staronly (Image original uniquement étoiles fourni par starnet)
 - Dossier results/mask
-  - Masque (Masque binaire sur étoile détectée)
-  - Masque Flou Gaussien (Reprise du masque binaire avec)
-  - Overlay
-- Dossier results/image_final
-  - Ierode
-  - Image grise original
-  - IMage final
+  - mask_stars_thresh (MAsque binaire avec pixel sur étoiles)
+  - mask_stars_dilate (Masque binaire avec agrandissement des pixels détection étoiles)
+  - star_blurred (Masque avec le flou appliqué)
+  - star_reduced (Masque avec réduction appliqué)
+- Dossier resultsAPI
+  - cf même dossiers que phase2
+- Dossier results/compare
+  - before_reduced (Avant réduction)
+  - after_reduced (Après réduction)
+  - diff_abs_between (différence entre les deux images)
+- Dossier results/final_image
+  - final_combined_phase3.fits (Image exportée en .FITS pour SIRIL)
+  - final_combined_phase3.png (Image save pour preview en PNG)
