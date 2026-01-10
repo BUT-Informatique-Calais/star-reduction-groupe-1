@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QGroupBox, QLabel, QHBoxLayout, QListWidget, QPushButton, QSlider, QLineEdit, QFormLayout, QCheckBox, QFileDialog, QRadioButton, QButtonGroup, QSizePolicy, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QGroupBox, QLabel, QHBoxLayout, QListWidget, QPushButton, QSlider, QLineEdit, QFormLayout, QCheckBox, QFileDialog, QRadioButton, QButtonGroup, QSizePolicy, QMessageBox, QToolButton
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt, QTimer
 import qdarkstyle # Dark mode
@@ -22,6 +22,8 @@ class StarReducApp(QMainWindow):
         self.current_fits_starless = None
         self.current_fits_staronly = None
         self.nb_stars = 0
+        self.before = None
+        self.after = None
         
         # timer anti-spam (debounce) in order to avoid too many calculations
         self.update_timer = QTimer(self)
@@ -323,30 +325,60 @@ class StarReducApp(QMainWindow):
         self.param_nb_stars.setReadOnly(True)
         right_form_layout.addRow("Number stars :", self.param_nb_stars)
 
-        param2 = QLineEdit("TODO")
-        param2.setReadOnly(True)
-        right_form_layout.addRow("Param 2 :", param2)
+        # advanced buttons
+        buttons_row1 = QHBoxLayout()
+        buttons_row2 = QHBoxLayout()
+
+        self.btn_view_final = QToolButton()
+        self.btn_view_final.setText("Final")
+        self.btn_view_final.setToolTip("Display final Image")
+
+        self.btn_view_overlay = QToolButton()
+        self.btn_view_overlay.setText("Overlay")
+        self.btn_view_overlay.setToolTip("Display overlay")
+
+        self.btn_view_mask = QToolButton()
+        self.btn_view_mask.setText("Gaussian Mask")
+        self.btn_view_mask.setToolTip("Afficher le masque")
+
+        self.btn_view_blink = QToolButton()
+        self.btn_view_blink.setText("Blink")
+        self.btn_view_blink.setToolTip("Blink (original/final)")
         
-        param3 = QLineEdit("TODO")
-        param3.setReadOnly(True)
-        right_form_layout.addRow("Param 3 :", param3)
+        for b in (self.btn_view_final, self.btn_view_overlay, self.btn_view_blink, self.btn_view_mask):
+            b.setFixedSize(150, 50)
         
-        param4 = QLineEdit("TODO")
-        param4.setReadOnly(True)
-        right_form_layout.addRow("Param 4 :", param4)
+        buttons_row1.addWidget(self.btn_view_final)
+        buttons_row1.addWidget(self.btn_view_overlay)
+        buttons_row2.addWidget(self.btn_view_blink)
+        buttons_row2.addWidget(self.btn_view_mask)
         
-        param5 = QLineEdit("TODO")
-        param5.setReadOnly(True)
-        right_form_layout.addRow("Param 5 :", param5)
+        buttons_container1 = QWidget()
+        buttons_container2 = QWidget()
+        buttons_container1.setLayout(buttons_row1)
+        buttons_container2.setLayout(buttons_row2)
+        right_form_layout.addRow("Vues :", buttons_container1)
+        right_form_layout.addRow("Vues :", buttons_container2)
+        
+        self.btn_view_final.clicked.connect(lambda: self.show_view("final"))
+        self.btn_view_overlay.clicked.connect(lambda: self.show_view("overlay"))
+        self.btn_view_blink.clicked.connect(lambda: self.show_view("blink"))
+        self.btn_view_mask.clicked.connect(lambda: self.show_view("mask"))
+            
         
         # spacer for keep button register on bottom
         right_main_layout.addStretch(1)
         
         # Button registration
-        btn_save = QPushButton("Save Image")
-        right_main_layout.addWidget(btn_save)
+        buttons_rowSave = QHBoxLayout()
+        self.btn_save = QPushButton("Save Image")
+        self.btn_save.setFixedSize(400, 75)
+        buttons_rowSave.addWidget(self.btn_save)
+        buttons_containerSave = QWidget()
+        buttons_containerSave.setLayout(buttons_rowSave)
+        right_main_layout.addWidget(buttons_containerSave)
         
-        btn_save.clicked.connect(self.save_image_as)
+        self.btn_save.clicked.connect(self.save_image_as)
         
         # ==================== Add elements in Bottom =======================
         bottom_layout = QHBoxLayout()
@@ -394,7 +426,7 @@ class StarReducApp(QMainWindow):
     
     def on_item_clicked_starnet(self, item):
         '''
-        load the original image matching with the selected fits
+        load the starnet's images matching with the selected fits
         
         :param item: the fits'name selected
         '''
@@ -440,6 +472,11 @@ class StarReducApp(QMainWindow):
         
         
     def on_item_clicked_choice(self, item):
+        '''
+        Handle to switch for the standard model or the netstar model
+        
+        :param item: the fits'name selected
+        '''
         # Handler clic on item
         if (self.is_starnet_model()):
             self.on_item_clicked_starnet(item)
@@ -470,7 +507,7 @@ class StarReducApp(QMainWindow):
     
     def update_process_image(self):
         '''
-        Calculate all processus for create the final image
+        Calculate all processus for create the final image with the standard model
         
         Read sliders'values for use in parameters of the differents function
         and display the final image in appropriate box
@@ -514,6 +551,12 @@ class StarReducApp(QMainWindow):
         )
     
     def update_process_starnet(self):
+        '''
+        Calculate all processus for create the final image with the starnet model
+        
+        Read sliders'values for use in parameters of the differents function
+        and display the final image in appropriate box
+        '''
         
         if not self.current_fits_starless or not self.current_fits_staronly :
             return
@@ -521,6 +564,9 @@ class StarReducApp(QMainWindow):
         # read sliders'values
         alpha = self.slider_netstar_alpha.value() / 10.0
         thresh = self.slider_netstar_threshold.value() / 100.0
+        
+        coeff_dilate = (3,3)
+        coeff_gauss = (3,3)
         
         # Load starless and apply handler_color_image for normalization
         data_starless, header_starless = p3.load_fits(self.current_fits_starless)
@@ -538,12 +584,12 @@ class StarReducApp(QMainWindow):
         mask = p3.mask_from_stars_starnet(staronly_gray, thresh)
 
         # Apply Gaussian Blur
-        maskFlouGaussien = p3.mask_effects(mask, (3, 3), (3, 3), iterations=1)
+        maskFlouGaussien = p3.mask_effects(mask, coeff_dilate, coeff_gauss, iterations=1)
 
         # Reduce staronly image with the mask and alpha factor
         star_reduced = p3.reduce_stars(staronly_gray, maskFlouGaussien, alpha)
 
-        before, after, diff_abs = p3.save_diff_img(
+        self.before, self.after, diff_abs = p3.save_diff_img(
             starless_file_gray, staronly_gray, star_reduced
         )
 
@@ -562,6 +608,9 @@ class StarReducApp(QMainWindow):
         )
     
     def update_process_image_choice(self):
+        '''
+        Handle to switch for the standard process or the netstar process
+        '''
         # Handler clic on item
         if (self.is_starnet_model()):
             self.update_process_starnet()
@@ -570,6 +619,11 @@ class StarReducApp(QMainWindow):
         
     
     def on_model_changed(self, button, checked):
+        '''
+        handle checked buttonradio for model's choice
+        
+        :param checked: checked buttonradio
+        '''
         if not checked:
             return  # ignore auto unchecked from the other button
         self.apply_models()
@@ -604,6 +658,10 @@ class StarReducApp(QMainWindow):
 
 
     def apply_models(self):
+        '''
+        display or not the hide widgets
+        
+        '''
         starNet = self.case_starNet.isChecked()
     
         self.box_starNet.setVisible(starNet)
@@ -613,9 +671,47 @@ class StarReducApp(QMainWindow):
     
     
     def is_starnet_model(self):
+        '''
+        Return if starnet model is choosen
+        '''
         return self.case_starNet.isChecked()
 
-            
+    
+    def show_view(self, mode: str):
+        """
+        Change image display in right box depending to mode
+        
+        param: mode str choice on select mode
+        """
+        paths_views = {
+            "final": "results/final_image/image_finale.png",
+            "overlay": "results/masks/overlay_stars.png",
+            "mask": "results/masks/maskFlouGaussien.png",
+        }
+
+        if mode == "blink":
+            if self.before is None or self.after is None:
+                QMessageBox.information(self, "Blink", "Try blink only with a starNet image")
+                return
+            p3.blink_image(self.before, self.after)
+            return
+
+        path = paths_views.get(mode)
+        if not path or not os.path.exists(path):
+            QMessageBox.information(self, "Image not found", "Image not found")
+            return
+
+        self.img_right.setPixmap(
+            QPixmap(path).scaled(
+                650, 650,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        )
+
+    
+    
+     
 
 if __name__ == "__main__":
     

@@ -78,11 +78,11 @@ You got Siril
 
 ### 2. Create directories
 
-You will create two directories - star_reduction : The directory where siril will automatically save the files fit (starless,starmask). - StarNetCLI : The directory will Starnet CLI program will be stock (because siril doesn't install it)
+You will create two directories - star_reduction : The directory where siril will automatically save the files fit (starless,starmask)(to be create into folder or project). - StarNetCLI : The directory will Starnet CLI program will be stock (because siril doesn't install it)
 
 ```bash
-mkdir -p ~/astro/star_reduction
-mkdir -p ~/astro/StarNetCLI
+mkdir -p ~star_reduction
+mkdir -p ~StarNetCLI
 
 ```
 
